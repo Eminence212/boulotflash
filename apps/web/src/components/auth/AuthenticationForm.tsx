@@ -167,72 +167,42 @@ export function AuthenticationForm({
         <Divider label="Continuer avec" labelPosition="center" />
 
         <Stack gap="sm" aria-describedby={!canContinue ? hintId : undefined}>
-          <GoogleButton
-            radius="xl"
-            size="md"
-            fullWidth
-            disabled={!canContinue || busy}
-            loading={loadingProvider === "google"}
-            title={disabledReason}
-            aria-disabled={!canContinue || busy}
-            onClick={() => tryProvider("google")}
-            styles={
-              canContinue && !busy
-                ? {
-                    root: {
-                      borderColor: tokens.color.border.subtle,
-                      fontWeight: 600,
-                    },
-                  }
-                : undefined
-            }
-          >
-            Google
-          </GoogleButton>
-          <FacebookButton
-            radius="xl"
-            size="md"
-            fullWidth
-            disabled={!canContinue || busy}
-            loading={loadingProvider === "facebook"}
-            title={disabledReason}
-            aria-disabled={!canContinue || busy}
-            onClick={() => tryProvider("facebook")}
-            styles={
-              canContinue && !busy
-                ? {
-                    root: {
-                      borderColor: tokens.color.border.subtle,
-                      fontWeight: 600,
-                    },
-                  }
-                : undefined
-            }
-          >
-            Facebook
-          </FacebookButton>
-          <InstagramButton
-            radius="xl"
-            size="md"
-            fullWidth
-            disabled={!canContinue || busy}
-            loading={loadingProvider === "instagram"}
-            title={disabledReason}
-            aria-disabled={!canContinue || busy}
-            onClick={() => tryProvider("instagram")}
-            styles={
-              canContinue && !busy
-                ? {
-                    root: {
-                      borderColor: tokens.color.border.subtle,
-                      fontWeight: 600,
-                    },
-                  }
-                : undefined
-            }
-          >
-            Instagram
-          </InstagramButton>
+          {(
+            [
+              ["google", GoogleButton, "Google"],
+              ["facebook", FacebookButton, "Facebook"],
+              ["instagram", InstagramButton, "Instagram"],
+            ] as const
+          ).map(([id, Btn, label]) => {
+            const isLoading = loadingProvider === id;
+            // Loader dots uniquement sur le bouton cliqué ; les autres sont disabled sans spinner.
+            const isDisabled = !canContinue || (busy && !isLoading);
+            return (
+              <Btn
+                key={id}
+                radius="xl"
+                size="md"
+                fullWidth
+                disabled={isDisabled}
+                loading={isLoading}
+                title={disabledReason}
+                aria-disabled={isDisabled}
+                onClick={() => tryProvider(id)}
+                styles={
+                  canContinue && !busy
+                    ? {
+                        root: {
+                          borderColor: tokens.color.border.subtle,
+                          fontWeight: 600,
+                        },
+                      }
+                    : undefined
+                }
+              >
+                {label}
+              </Btn>
+            );
+          })}
         </Stack>
 
         {error ? (

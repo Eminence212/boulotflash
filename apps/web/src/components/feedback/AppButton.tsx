@@ -5,19 +5,15 @@ import { Button, type ButtonProps } from '@mantine/core';
 export type AppButtonProps = ButtonProps &
   React.ComponentPropsWithoutRef<'button'>;
 
-const DEFAULT_LOADER_PROPS = { type: 'dots' as const };
-
 /**
- * Bouton réutilisable — loader Mantine `dots` quand `loading`.
+ * Bouton réutilisable — loader Mantine `dots` dès que `loading` est vrai.
+ * `loaderProps` du caller est fusionné (type dots reste la base).
  */
-export function AppButton({
-  loaderProps,
-  ...props
-}: AppButtonProps) {
+export function AppButton({ loaderProps, ...props }: AppButtonProps) {
   return (
     <Button
-      loaderProps={{ ...DEFAULT_LOADER_PROPS, ...loaderProps }}
       {...props}
+      loaderProps={{ type: 'dots', ...loaderProps }}
     />
   );
 }

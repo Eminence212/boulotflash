@@ -128,7 +128,6 @@ export function AuthenticationForm({
                 <Anchor
                   component={Link}
                   href="/conditions"
-                  target="_blank"
                   onClick={(e) => e.stopPropagation()}
                 >
                   Conditions d’utilisation
@@ -137,7 +136,6 @@ export function AuthenticationForm({
                 <Anchor
                   component={Link}
                   href="/confidentialite"
-                  target="_blank"
                   onClick={(e) => e.stopPropagation()}
                 >
                   Politique de confidentialité

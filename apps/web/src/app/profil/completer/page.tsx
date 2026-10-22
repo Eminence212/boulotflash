@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Button,
   Paper,
   Stack,
   Text,
@@ -12,7 +11,7 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
-import { AppNotification } from '@/components/feedback';
+import { AppAlert, AppButton } from '@/components/feedback';
 import { apiFetch, clearAccessToken, readAccessToken } from '@/lib/api';
 import { tokens } from '@/theme/tokens';
 
@@ -139,20 +138,20 @@ export default function CompleterProfilPage() {
               {...form.getInputProps('phone')}
             />
 
-            <AppNotification tone="info" title="Téléphone requis">
+            <AppAlert tone="info" title="Téléphone requis">
               Sans numéro, consultation seule — candidature et publication
               restent bloquées.
-            </AppNotification>
+            </AppAlert>
 
             {error ? (
-              <AppNotification tone="error" title="Profil">
+              <AppAlert tone="error" title="Profil">
                 {error}
-              </AppNotification>
+              </AppAlert>
             ) : null}
 
-            <Button type="submit" color="flash" loading={loading} fullWidth>
+            <AppButton type="submit" color="flash" loading={loading} fullWidth>
               Enregistrer
-            </Button>
+            </AppButton>
           </Stack>
         </form>
       </Paper>

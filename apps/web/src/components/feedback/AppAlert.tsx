@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Notification, type NotificationProps } from '@mantine/core';
+import { Alert, type AlertProps } from '@mantine/core';
 import {
   CheckIcon,
   InfoIcon,
@@ -9,12 +9,12 @@ import {
   XIcon,
 } from '@phosphor-icons/react';
 
-export type AppNotificationTone = 'error' | 'warning' | 'success' | 'info';
+export type AppAlertTone = 'error' | 'warning' | 'success' | 'info';
 
 const TONE: Record<
-  AppNotificationTone,
+  AppAlertTone,
   {
-    color: NotificationProps['color'];
+    color: AlertProps['color'];
     title: string;
     icon: ReactNode;
   }
@@ -41,50 +41,41 @@ const TONE: Record<
   },
 };
 
-export type AppNotificationProps = Omit<
-  NotificationProps,
-  'color' | 'children' | 'icon'
-> & {
+export type AppAlertProps = Omit<AlertProps, 'color' | 'children' | 'icon'> & {
   /** Ton sémantique — couleur + icône Phosphor. */
-  tone?: AppNotificationTone;
+  tone?: AppAlertTone;
   children: ReactNode;
   /** Masquer le titre. */
   hideTitle?: boolean;
-  /** Afficher le bouton fermer (défaut : non pour les messages inline). */
-  withCloseButton?: boolean;
 };
 
 /**
- * Notification Mantine réutilisable (doc Notification + @phosphor-icons/react).
+ * Feedback inline pour attirer l’attention (Mantine Alert).
+ * Ne pas confondre avec le système de notifications dynamiques (@mantine/notifications).
  */
-export function AppNotification({
+export function AppAlert({
   tone = 'info',
   title,
   hideTitle = false,
   children,
-  withCloseButton = false,
+  variant = 'light',
   radius = 'md',
   ...rest
-}: AppNotificationProps) {
+}: AppAlertProps) {
   const cfg = TONE[tone];
   const resolvedTitle = hideTitle ? undefined : (title ?? cfg.title);
 
   return (
-    <Notification
-      icon={cfg.icon}
+    <Alert
+      variant={variant}
+      radius={radius}
       color={cfg.color}
       title={resolvedTitle}
-      radius={radius}
-      withCloseButton={withCloseButton}
-      role={tone === 'error' ? 'alert' : 'status'}
+      icon={cfg.icon}
+      role={tone === 'error' ? 'alert' : undefined}
       {...rest}
     >
       {children}
-    </Notification>
+    </Alert>
   );
 }
-
-/** Alias historique — préférer `AppNotification`. */
-export const AppAlert = AppNotification;
-export type AppAlertTone = AppNotificationTone;
-export type AppAlertProps = AppNotificationProps;

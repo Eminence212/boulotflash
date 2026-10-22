@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Source de vérité | [`tokens/tokens.json`](tokens/tokens.json) |
-| Inspiration logo | Logos BoulotFlash adoptés (`design/logo/source-*.png`) — squircle + éclair `#3EA4FF` |
+| Inspiration logo | Lockup adopté dans `logo/boulotflash.svg` — squircle + éclair `#3EA4FF` |
 | Inspiration UI | [`captures/`](../captures/) — soft UI clair, pills, cartes très arrondies |
 | Stack UI | **Mantine UI** (composants) + **Tailwind CSS** (layout / responsive) |
 | Icônes | **[Tabler Icons](https://tabler.io/icons)** — `@tabler/icons-react` |
@@ -27,9 +27,8 @@ BoulotFlash combine l’énergie **Flash** (éclair, vitesse, bleu marque `#3EA4
 | `logo/boulotflash-mark.svg` | Picto squircle + éclair |
 | `logo/favicon.svg` | Favicon |
 | `logo/boulotflash-192.png` / `512.png` | Icônes PWA |
-| `logo/source-*.png` | Sources raster adoptées (référence visuelle) |
 
-Lockup adopté : marque (squircle bleu + éclair blanc) + **Boulot** + **Flash** italique + double swoosh sous « Flash » uniquement.
+Lockup adopté : marque (squircle bleu + éclair blanc) + **Boulot** + **Flash** italique + double swoosh sous « Flash » uniquement. Le SVG est la source ; les PNG PWA en dérivent.
 
 Règles : le logo **n’est jamais** un bouton d’action. Les CTA restent des mots (Postuler, Publier, Accepter). Reconnaissable à 24 px.
 

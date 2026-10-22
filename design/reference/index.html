@@ -31,7 +31,7 @@
       --radius-search: 2rem;
       --radius-pill: 9999px;
       --shadow-md: 0 8px 24px rgba(11, 31, 58, 0.08);
-      --shadow-brand: 0 8px 24px rgba(0, 102, 255, 0.35);
+      --shadow-brand: 0 8px 24px rgba(62, 164, 255, 0.35);
       --touch: 44px;
       --font-display: "Sora", system-ui, sans-serif;
       --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
@@ -505,6 +505,16 @@
           <div class="logo-tile dark">
             <img src="../logo/boulotflash-on-dark.svg" alt="BoulotFlash sur fond sombre" height="56" />
           </div>
+          <div class="logo-tile light" style="gap:1rem">
+            <img src="../logo/boulotflash-mark.svg" alt="Mark 56 px" width="56" height="56" style="height:56px;width:56px" />
+            <div style="display:flex;align-items:center;gap:0.75rem">
+              <img src="../logo/boulotflash-mark.svg" alt="Mark 24 px" width="24" height="24" style="height:24px;width:24px" />
+              <span class="rules" style="margin:0">Picto distinct à 24&nbsp;px</span>
+            </div>
+          </div>
+          <div class="logo-tile light" style="color:#0B1220">
+            <img src="../logo/boulotflash-mono.svg" alt="BoulotFlash monochrome" height="56" style="height:56px;color:inherit" />
+          </div>
         </div>
 
         <div class="swatches" id="swatches"></div>
@@ -561,12 +571,28 @@
         s.setProperty('--flash', t.color.brand.flash);
         s.setProperty('--flash-hover', t.color.brand.flashHover);
         s.setProperty('--flash-soft', t.color.brand.flashSoft);
+        s.setProperty('--flash-muted', t.color.brand.flashMuted);
         s.setProperty('--ink', t.color.brand.ink);
         s.setProperty('--ink-muted', t.color.brand.inkMuted);
         s.setProperty('--navy', t.color.brand.navy);
         s.setProperty('--canvas', t.color.surface.canvas);
+        s.setProperty('--canvas-tint', t.color.surface.canvasTint);
+        s.setProperty('--card', t.color.surface.card);
+        s.setProperty('--border', t.color.border.subtle);
+        s.setProperty('--attente-fg', t.color.status.attente.fg);
+        s.setProperty('--attente-bg', t.color.status.attente.bg);
+        s.setProperty('--succes-fg', t.color.status.succes.fg);
+        s.setProperty('--succes-bg', t.color.status.succes.bg);
+        s.setProperty('--refus-fg', t.color.status.refus.fg);
+        s.setProperty('--refus-bg', t.color.status.refus.bg);
+        s.setProperty('--alerte-fg', t.color.status.alerte.fg);
+        s.setProperty('--alerte-bg', t.color.status.alerte.bg);
+        s.setProperty('--shadow-brand', t.shadow.brandGlow);
+        s.setProperty('--touch', t.touch.minHeight);
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn('tokens.json non chargé — servir le dossier design/ en HTTP (file:// bloque fetch).', err);
+      });
 
     // Show secondary CTA on wider screens
     const mq = window.matchMedia('(min-width: 640px)');

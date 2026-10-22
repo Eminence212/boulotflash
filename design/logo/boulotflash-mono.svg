@@ -1,7 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 160" role="img" aria-label="BoulotFlash">
   <title>BoulotFlash monochrome</title>
   <rect x="8" y="36" width="72" height="72" rx="18" fill="currentColor"/>
-  <path d="M54.5 48 L35 78.5 H47.5 L41.5 104 L66.5 68 H52.5 Z" fill="#FFFFFF"/>
+  <!-- Éclair centré dans le squircle (échelle mark 88 → 72, origine 8,36) -->
+  <path d="M48.09 53.18 L33.36 72.82 H42.36 L37.45 90.82 L53 69.55 H44 Z" fill="#FFFFFF"/>
   <g font-family="Sora, Plus Jakarta Sans, Arial Black, Helvetica, sans-serif" font-size="58" font-weight="800" letter-spacing="-1.2" fill="currentColor">
     <text x="100" y="94">Boulot</text>
     <text x="318" y="94" font-style="italic">Flash</text>

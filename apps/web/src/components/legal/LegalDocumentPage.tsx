@@ -14,6 +14,7 @@ import {
   Center,
 } from '@mantine/core';
 import { BrandLogo, BRAND_LOGO_PAGE_SIZE } from '@/components/brand';
+import { AppAlert } from '@/components/feedback';
 import { LegalMarkdown } from '@/components/legal/LegalMarkdown';
 import { prepareLegalMarkdown } from '@/components/legal/prepareLegalMarkdown';
 import { tokens } from '@/theme/tokens';
@@ -80,9 +81,9 @@ export function LegalDocumentPage({ title, src }: LegalDocumentPageProps) {
               </Text>
 
               {error ? (
-                <Text c="red" size="sm">
+                <AppAlert tone="error" title="Document">
                   {error}
-                </Text>
+                </AppAlert>
               ) : null}
 
               {!body && !error ? (

@@ -3,7 +3,6 @@
 import { useId } from "react";
 import Link from "next/link";
 import {
-  Alert,
   Anchor,
   Checkbox,
   Divider,
@@ -14,6 +13,7 @@ import {
   Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { AppAlert } from "@/components/feedback";
 import { tokens } from "@/theme/tokens";
 import { FacebookButton, GoogleButton, InstagramButton } from "./oauth-buttons";
 
@@ -157,20 +157,13 @@ export function AuthenticationForm({
         </Stack>
 
         {!canContinue && !loading ? (
-          <Text
+          <AppAlert
             id={hintId}
-            size="sm"
-            c="dimmed"
-            px="sm"
-            py="xs"
-            style={{
-              background: tokens.color.surface.canvasTint,
-              borderRadius: 8,
-              lineHeight: 1.45,
-            }}
+            tone="info"
+            title="Presque prêt"
           >
             Cochez les deux cases pour activer les boutons de connexion.
-          </Text>
+          </AppAlert>
         ) : null}
 
         <Divider label="Continuer avec" labelPosition="center" />
@@ -245,14 +238,14 @@ export function AuthenticationForm({
         </Stack>
 
         {error ? (
-          <Alert color="red" variant="light" title="Connexion" radius="md">
+          <AppAlert tone="error" title="Connexion">
             {error}
-          </Alert>
+          </AppAlert>
         ) : null}
         {message ? (
-          <Alert color="flash" variant="light" title="Bientôt" radius="md">
+          <AppAlert tone="info" title="Info">
             {message}
-          </Alert>
+          </AppAlert>
         ) : null}
       </Stack>
     </Paper>

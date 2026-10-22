@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Alert, Center, Loader, Stack, Text } from '@mantine/core';
+import { Center, Loader, Stack, Text } from '@mantine/core';
+import { AppAlert } from '@/components/feedback';
 import { apiFetch, saveAccessToken } from '@/lib/api';
 import {
   clearPkce,
@@ -84,10 +85,10 @@ export function OauthCallbackClient({ provider }: OauthCallbackClientProps) {
 
   if (error) {
     return (
-      <Stack gap="md" maw={420} mx="auto" py="xl">
-        <Alert color="red" title="Connexion" radius="md">
+      <Stack gap="md" maw={420} mx="auto" py="xl" px="md">
+        <AppAlert tone="error" title="Connexion">
           {error}
-        </Alert>
+        </AppAlert>
         <Text
           component="a"
           href="/connexion"

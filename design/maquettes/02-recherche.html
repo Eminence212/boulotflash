@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>02 · Recherche — BoulotFlash maquette</title>
+  <link rel="icon" href="../logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,600&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="maquettes.css" />
+</head>
+<body>
+  <div class="meta-bar">
+    <a href="index.html">← Index</a>
+    <nav aria-label="Maquettes"><a href="01-accueil.html">01</a> <a href="02-recherche.html">02</a> <a href="03-detail-public.html">03</a> <a href="04-inscription.html">04</a> <a href="05-profil-candidat.html">05</a> <a href="06-mes-candidatures.html">06</a> <a href="07-profil-recruteur.html">07</a> <a href="08-creation-mission.html">08</a> <a href="09-mes-missions.html">09</a> <a href="10-confirmation-coordonnees.html">10</a> <a href="11-notifications.html">11</a> <a href="12-offres-commerciales.html">12</a> <a href="13-administration.html">13</a> <a href="14-aide-confidentialite.html">14</a></nav>
+    <span>02 · Recherche</span>
+  </div>
+  <div class="phone" data-width="360">
+
+    <header class="topbar">
+      <a class="icon-btn" href="01-accueil.html" aria-label="Retour"><i class="ti ti-arrow-left" aria-hidden="true"></i></a>
+      <h1 class="title">Recherche et filtres</h1>
+      <span style="width:44px"></span>
+    </header>
+    <div class="content no-bottom">
+      <div class="field">
+        <label for="q">Mots-clés</label>
+        <input id="q" type="search" value="plonge" />
+      </div>
+      <div class="field">
+        <label for="com">Commune</label>
+        <select id="com"><option>Toutes (actives)</option><option selected>Gombe</option><option>Ngaliema</option><option>Lemba</option></select>
+      </div>
+      <div class="field">
+        <label for="cat">Catégorie</label>
+        <select id="cat"><option>Toutes</option><option selected>Service, plonge et cuisine</option><option>Déménagement</option></select>
+      </div>
+      <div class="field">
+        <label for="jour">Jour</label>
+        <input id="jour" type="date" />
+      </div>
+      <div class="switch-row"><span>Missions d’aujourd’hui</span><span class="toggle" aria-hidden="true"></span></div>
+      <div class="switch-row"><span>À moins de 5 km</span><span class="toggle off" aria-hidden="true"></span></div>
+      <p class="section-label">3 résultats</p>
+      <article class="card">
+        <div class="row-top"><h3>Service soirée — plonge</h3><span class="badge soft">1,2 km</span></div>
+        <div class="meta">
+          <span><strong>15 USD</strong></span>
+          <span><strong>Ven. 19:00</strong></span>
+          <span><strong>Gombe</strong></span>
+        </div>
+        <a class="btn btn-primary btn-block" href="03-detail-public.html">Voir le détail</a>
+      </article>
+      <button type="button" class="btn btn-secondary btn-block">Appliquer les filtres</button>
+    </div>
+
+  </div>
+</body>
+</html>

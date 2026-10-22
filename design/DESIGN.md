@@ -8,6 +8,7 @@
 | Stack UI | **Mantine UI** (composants) + **Tailwind CSS** (layout / responsive) |
 | Icônes | **[Tabler Icons](https://tabler.io/icons)** — `@tabler/icons-react` |
 | Page de référence | [`reference/index.html`](reference/index.html) |
+| Maquettes mobiles | [`maquettes/`](maquettes/) — 14 écrans MVP à 360 px (étape 03) |
 
 ## Direction visuelle
 

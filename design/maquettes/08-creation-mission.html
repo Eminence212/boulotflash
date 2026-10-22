@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>08 · Création mission — BoulotFlash maquette</title>
+  <link rel="icon" href="../logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,600&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="maquettes.css" />
+</head>
+<body>
+  <div class="meta-bar">
+    <a href="index.html">← Index</a>
+    <nav aria-label="Maquettes"><a href="01-accueil.html">01</a> <a href="02-recherche.html">02</a> <a href="03-detail-public.html">03</a> <a href="04-inscription.html">04</a> <a href="05-profil-candidat.html">05</a> <a href="06-mes-candidatures.html">06</a> <a href="07-profil-recruteur.html">07</a> <a href="08-creation-mission.html">08</a> <a href="09-mes-missions.html">09</a> <a href="10-confirmation-coordonnees.html">10</a> <a href="11-notifications.html">11</a> <a href="12-offres-commerciales.html">12</a> <a href="13-administration.html">13</a> <a href="14-aide-confidentialite.html">14</a></nav>
+    <span>08 · Création mission</span>
+  </div>
+  <div class="phone" data-width="360">
+
+    <header class="topbar">
+      <a class="icon-btn" href="09-mes-missions.html" aria-label="Retour"><i class="ti ti-arrow-left" aria-hidden="true"></i></a>
+      <h1 class="title">Créer une mission</h1>
+      <span style="width:44px"></span>
+    </header>
+    <div class="content">
+      <div class="field"><label for="titre">Titre</label><input id="titre" value="Service soirée — plonge" /></div>
+      <div class="field"><label for="cat8">Catégorie</label>
+        <select id="cat8"><option selected>Service, plonge et cuisine</option><option>Vente</option></select>
+      </div>
+      <div class="field"><label for="montant">Montant (USD)</label><input id="montant" inputmode="decimal" value="15" /></div>
+      <div class="field"><label for="places">Places</label><input id="places" type="number" value="2" min="1" /></div>
+      <div class="field"><label for="debut">Début</label><input id="debut" type="datetime-local" /></div>
+      <div class="field"><label for="commune8">Commune</label><select id="commune8"><option selected>Gombe</option></select></div>
+      <div class="field"><label for="repere">Repère public</label><input id="repere" value="Près du marché central" /></div>
+      <div class="field"><label for="adresse">Adresse privée (après acceptation)</label><input id="adresse" value="10 avenue de test, Gombe" /></div>
+      <div class="field"><label for="desc">Description</label><textarea id="desc">Service et plonge pour soirée restaurant.</textarea></div>
+      <p class="footnote">La publication consomme un droit gratuit tant que les services sont gratuits.</p>
+    </div>
+    <div class="bottom-bar">
+      <button type="button" class="btn btn-secondary">Brouillon</button>
+      <button type="button" class="btn btn-primary">Publier</button>
+    </div>
+
+  </div>
+</body>
+</html>

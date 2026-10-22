@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>11 · Notifications — BoulotFlash maquette</title>
+  <link rel="icon" href="../logo/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,600&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="maquettes.css" />
+</head>
+<body>
+  <div class="meta-bar">
+    <a href="index.html">← Index</a>
+    <nav aria-label="Maquettes"><a href="01-accueil.html">01</a> <a href="02-recherche.html">02</a> <a href="03-detail-public.html">03</a> <a href="04-inscription.html">04</a> <a href="05-profil-candidat.html">05</a> <a href="06-mes-candidatures.html">06</a> <a href="07-profil-recruteur.html">07</a> <a href="08-creation-mission.html">08</a> <a href="09-mes-missions.html">09</a> <a href="10-confirmation-coordonnees.html">10</a> <a href="11-notifications.html">11</a> <a href="12-offres-commerciales.html">12</a> <a href="13-administration.html">13</a> <a href="14-aide-confidentialite.html">14</a></nav>
+    <span>11 · Notifications</span>
+  </div>
+  <div class="phone" data-width="360">
+
+    <header class="topbar">
+      <a class="icon-btn" href="01-accueil.html" aria-label="Retour"><i class="ti ti-arrow-left" aria-hidden="true"></i></a>
+      <h1 class="title">Notifications</h1>
+      <span style="width:44px"></span>
+    </header>
+    <div class="content no-bottom">
+      <p class="section-label">Centre in-app</p>
+      <div class="card" style="padding:0.25rem 1rem">
+        <div class="list-item">
+          <div class="ico"><i class="ti ti-bell" aria-hidden="true"></i></div>
+          <div><strong>Proposition reçue</strong><span>Aide déménagement · expire bientôt</span></div>
+        </div>
+        <div class="list-item">
+          <div class="ico"><i class="ti ti-circle-check" aria-hidden="true"></i></div>
+          <div><strong>Candidature vue</strong><span>Service soirée — plonge</span></div>
+        </div>
+        <div class="list-item">
+          <div class="ico"><i class="ti ti-alert-triangle" aria-hidden="true"></i></div>
+          <div><strong>Déclarer la fin de mission</strong><span>Inventaire · fenêtre ouverte</span></div>
+        </div>
+      </div>
+      <p class="section-label">Déclarations</p>
+      <div class="card">
+        <h3>Inventaire boutique</h3>
+        <p class="lead">La mission a-t-elle eu lieu ?</p>
+        <div class="btn-row">
+          <button type="button" class="btn btn-secondary">Absence</button>
+          <button type="button" class="btn btn-primary">Réalisée</button>
+        </div>
+      </div>
+      <p class="section-label">Signalement</p>
+      <div class="card">
+        <div class="field" style="margin:0">
+          <label for="sig">Motif</label>
+          <select id="sig"><option>Comportement inapproprié</option><option>Offre trompeuse</option><option>Autre</option></select>
+        </div>
+        <button type="button" class="btn btn-danger btn-block" style="margin-top:0.75rem">Signaler</button>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

@@ -1,12 +1,16 @@
 import {
   Body,
   Controller,
+  Get,
   HttpException,
   Post,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { AccountResolverService } from './account-resolver.service';
+import { AuthGuard, type AuthedRequest } from './auth.guard';
 import {
   REFRESH_COOKIE,
   clearRefreshCookie,
@@ -15,6 +19,8 @@ import {
 } from './cookie';
 import { JwtService } from './jwt.service';
 import { OauthRateLimitService } from './oauth-rate-limit.service';
+import { OauthTokenVerifierService } from './oauth-token-verifier.service';
+import type { OauthCredentialInput, OauthProvider } from './oauth-types';
 import { SessionService } from './session.service';
 import { TokenBlacklistService } from './token-blacklist.service';
 
@@ -35,6 +41,16 @@ function looksLikeDemoToken(value: unknown): boolean {
   return typeof value === 'string' && value.trim().toLowerCase().startsWith('demo:');
 }
 
+type OauthBody = OauthCredentialInput & {
+  acceptTerms?: boolean;
+  acceptPrivacy?: boolean;
+  ageConfirmed?: boolean;
+};
+
+type LinkBody = OauthCredentialInput & {
+  provider?: OauthProvider;
+};
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -42,7 +58,14 @@ export class AuthController {
     private readonly rateLimit: OauthRateLimitService,
     private readonly jwt: JwtService,
     private readonly blacklist: TokenBlacklistService,
+    private readonly verifier: OauthTokenVerifierService,
+    private readonly accounts: AccountResolverService,
   ) {}
+
+  @Get('oauth/config')
+  oauthConfig() {
+    return this.verifier.getPublicConfig();
+  }
 
   @Post('refresh')
   async refresh(
@@ -96,7 +119,6 @@ export class AuthController {
     @Body()
     body: {
       email?: string;
-      /** Obligatoire : majorité + acceptation CONDITIONS + CONFIDENTIALITÉ. */
       acceptTerms?: boolean;
       acceptPrivacy?: boolean;
       ageConfirmed?: boolean;
@@ -108,20 +130,7 @@ export class AuthController {
         404,
       );
     }
-    if (
-      body?.acceptTerms !== true ||
-      body?.acceptPrivacy !== true ||
-      body?.ageConfirmed !== true
-    ) {
-      throw new HttpException(
-        {
-          code: 'TERMS_REQUIRED',
-          message:
-            'Confirmez la majorité (18 ans) et acceptez les Conditions d’utilisation et la Politique de confidentialité.',
-        },
-        400,
-      );
-    }
+    this.assertLegalAcceptance(body);
     const user = await this.sessions.createDevUser(body?.email);
     await this.sessions.recordLegalAcceptance(user.id);
     const pair = await this.sessions.issueSession(
@@ -139,38 +148,114 @@ export class AuthController {
   @Post('oauth/google')
   oauthGoogle(
     @Req() req: Request,
-    @Body() body: Record<string, unknown>,
-  ): Promise<never> {
-    return this.handleOauthStub(req, body);
+    @Res({ passthrough: true }) res: Response,
+    @Body() body: OauthBody,
+  ) {
+    return this.handleOauthLogin('google', req, res, body);
   }
 
   @Post('oauth/facebook')
   oauthFacebook(
     @Req() req: Request,
-    @Body() body: Record<string, unknown>,
-  ): Promise<never> {
-    return this.handleOauthStub(req, body);
+    @Res({ passthrough: true }) res: Response,
+    @Body() body: OauthBody,
+  ) {
+    return this.handleOauthLogin('facebook', req, res, body);
   }
 
   @Post('oauth/instagram')
   oauthInstagram(
     @Req() req: Request,
-    @Body() body: Record<string, unknown>,
-  ): Promise<never> {
-    return this.handleOauthStub(req, body);
+    @Res({ passthrough: true }) res: Response,
+    @Body() body: OauthBody,
+  ) {
+    return this.handleOauthLogin('instagram', req, res, body);
   }
 
-  private async handleOauthStub(
-    req: Request,
-    body: Record<string, unknown>,
-  ): Promise<never> {
+  @Post('oauth/link')
+  @UseGuards(AuthGuard)
+  async oauthLink(
+    @Req() req: AuthedRequest,
+    @Body() body: LinkBody,
+  ): Promise<{ ok: true; provider: OauthProvider }> {
     await this.rateLimit.assertAllowed(clientIp(req));
+    const provider = body?.provider;
+    if (
+      provider !== 'google' &&
+      provider !== 'facebook' &&
+      provider !== 'instagram'
+    ) {
+      throw new HttpException(
+        { code: 'VALIDATION', message: 'provider requis (google|facebook|instagram).' },
+        400,
+      );
+    }
+    this.assertNoDemo(body);
+    const profile = await this.verifier.verify(provider, body ?? {});
+    await this.accounts.linkProvider(req.userId!, profile);
+    return { ok: true, provider };
+  }
 
+  private async handleOauthLogin(
+    provider: OauthProvider,
+    req: Request,
+    res: Response,
+    body: OauthBody,
+  ): Promise<{
+    accessToken: string;
+    expiresIn: number;
+    userId: string;
+    needsProfileCompletion: boolean;
+  }> {
+    await this.rateLimit.assertAllowed(clientIp(req));
+    this.assertLegalAcceptance(body);
+    this.assertNoDemo(body);
+
+    const profile = await this.verifier.verify(provider, body ?? {});
+    const { userId } = await this.accounts.resolveLogin(profile);
+    await this.sessions.recordLegalAcceptance(userId);
+    const pair = await this.sessions.issueSession(
+      userId,
+      req.headers['user-agent'],
+    );
+    setRefreshCookie(res, pair.refreshToken, pair.refreshMaxAgeSec);
+    const me = await this.sessions.getUserForMe(userId);
+    return {
+      accessToken: pair.accessToken,
+      expiresIn: pair.expiresIn,
+      userId: pair.userId,
+      needsProfileCompletion: me.needsProfileCompletion,
+    };
+  }
+
+  private assertLegalAcceptance(body: {
+    acceptTerms?: boolean;
+    acceptPrivacy?: boolean;
+    ageConfirmed?: boolean;
+  }): void {
+    if (
+      body?.acceptTerms !== true ||
+      body?.acceptPrivacy !== true ||
+      body?.ageConfirmed !== true
+    ) {
+      throw new HttpException(
+        {
+          code: 'TERMS_REQUIRED',
+          message:
+            'Confirmez la majorité (18 ans) et acceptez les Conditions d’utilisation et la Politique de confidentialité.',
+        },
+        400,
+      );
+    }
+  }
+
+  private assertNoDemo(body: OauthCredentialInput): void {
     const candidates = [
       body?.idToken,
       body?.accessToken,
-      body?.token,
-      body?.credential,
+      body?.code,
+      (body as { token?: string; credential?: string })?.token,
+      (body as { credential?: string })?.credential,
     ];
     if (candidates.some(looksLikeDemoToken)) {
       throw new HttpException(
@@ -181,13 +266,5 @@ export class AuthController {
         401,
       );
     }
-
-    throw new HttpException(
-      {
-        code: 'OAUTH_NOT_READY',
-        message: 'Connexion OAuth disponible à l’étape 09.',
-      },
-      501,
-    );
   }
 }

@@ -62,12 +62,33 @@ describeAuth('identity sessions (étape 08)', () => {
   it('refuse idToken demo: sans créer d’user', async () => {
     const before = await db.user.count();
     const { status, json } = await post('/auth/oauth/google', {
-      body: { idToken: 'demo:google:fake' },
+      body: {
+        idToken: 'demo:google:fake',
+        ageConfirmed: true,
+        acceptTerms: true,
+        acceptPrivacy: true,
+      },
     });
     expect(status).toBe(401);
     expect(json.code).toBe('UNAUTHORIZED');
     const after = await db.user.count();
     expect(after).toBe(before);
+  });
+
+  it('oauth sans acceptation légale → TERMS_REQUIRED', async () => {
+    const { status, json } = await post('/auth/oauth/google', {
+      body: { code: 'not-a-real-code' },
+    });
+    expect(status).toBe(400);
+    expect(json.code).toBe('TERMS_REQUIRED');
+  });
+
+  it('GET /auth/oauth/config expose les client ids publics', async () => {
+    const res = await fetch(`${API_BASE}/auth/oauth/config`);
+    const json = (await res.json()) as Record<string, Record<string, string>>;
+    expect(res.status).toBe(200);
+    expect(json.google?.clientId).toBeTruthy();
+    expect(json.facebook?.redirectUri).toContain('/auth/callback/facebook');
   });
 
   it('dev-session → /me 200 ; refresh rotation ; logout révoque', async () => {
@@ -136,5 +157,55 @@ describeAuth('identity sessions (étape 08)', () => {
       headers: { cookie: newCookie! },
     });
     expect(deadRefresh.status).toBe(401);
+  });
+
+  it('PATCH /me téléphone → phone-gate OK ; sans téléphone → PHONE_REQUIRED', async () => {
+    if (
+      !['1', 'true', 'yes', 'on'].includes(
+        (process.env.ENABLE_TEST_HOOKS ?? '').trim().toLowerCase(),
+      )
+    ) {
+      return;
+    }
+
+    const session = await post('/auth/dev-session', {
+      body: {
+        email: `jest-phone-${Date.now()}@boulotflash.local`,
+        ageConfirmed: true,
+        acceptTerms: true,
+        acceptPrivacy: true,
+      },
+    });
+    expect([200, 201]).toContain(session.status);
+    const accessToken = session.json.accessToken as string;
+
+    const gateBefore = await fetch(`${API_BASE}/me/phone-gate`, {
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    const gateBeforeJson = (await gateBefore.json()) as Record<string, unknown>;
+    expect(gateBefore.status).toBe(403);
+    expect(gateBeforeJson.code).toBe('PHONE_REQUIRED');
+
+    const phone = `+2438${String(Date.now()).slice(-8)}`;
+    const patched = await fetch(`${API_BASE}/me`, {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        displayName: 'Jest Phone',
+        phone,
+      }),
+    });
+    const patchedJson = (await patched.json()) as Record<string, unknown>;
+    expect(patched.status).toBe(200);
+    expect(patchedJson.phone).toBe(phone);
+    expect(patchedJson.needsProfileCompletion).toBe(false);
+
+    const gateAfter = await fetch(`${API_BASE}/me/phone-gate`, {
+      headers: { authorization: `Bearer ${accessToken}` },
+    });
+    expect(gateAfter.status).toBe(200);
   });
 });

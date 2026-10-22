@@ -6,34 +6,60 @@ import {
   AuthenticationForm,
   type AuthProvider,
 } from '@/components/auth/AuthenticationForm';
+import { apiFetch } from '@/lib/api';
+import {
+  buildAuthorizeUrl,
+  createPkceChallenge,
+  storePkce,
+  type OauthPublicConfig,
+} from '@/lib/oauth-pkce';
 
 export default function ConnexionPage() {
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  function onProvider(provider: AuthProvider) {
+  async function onProvider(provider: AuthProvider) {
     setError(null);
-    setMessage(null);
+    setLoading(true);
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       setError('Non envoyé — vérifiez votre connexion.');
+      setLoading(false);
       return;
     }
+
     try {
-      sessionStorage.setItem(
-        'bf_legal_acceptance',
-        JSON.stringify({
-          ageConfirmed: true,
-          acceptTerms: true,
-          acceptPrivacy: true,
-          at: new Date().toISOString(),
-        }),
+      const { status, data } = await apiFetch<OauthPublicConfig>(
+        '/auth/oauth/config',
       );
+      if (status >= 400 || !data[provider]?.clientId) {
+        setError(
+          (data as { message?: string }).message ??
+            'Configuration OAuth indisponible.',
+        );
+        setLoading(false);
+        return;
+      }
+
+      const { codeVerifier, codeChallenge, state } =
+        await createPkceChallenge();
+      storePkce({
+        provider,
+        state,
+        codeVerifier,
+        ageConfirmed: true,
+        acceptTerms: true,
+        acceptPrivacy: true,
+      });
+
+      const url = buildAuthorizeUrl(provider, data, {
+        state,
+        codeChallenge,
+      });
+      window.location.assign(url);
     } catch {
-      // sessionStorage indisponible
+      setError('Impossible de démarrer la connexion OAuth.');
+      setLoading(false);
     }
-    setMessage(
-      `Connexion ${provider} disponible à l’étape 09 (verifiers OAuth réels). Vos acceptations juridiques sont enregistrées pour la suite.`,
-    );
   }
 
   return (
@@ -41,7 +67,7 @@ export default function ConnexionPage() {
       <AuthenticationForm
         onProvider={onProvider}
         error={error}
-        message={message}
+        loading={loading}
       />
     </AuthPageShell>
   );

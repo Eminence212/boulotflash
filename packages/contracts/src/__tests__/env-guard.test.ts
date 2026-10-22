@@ -7,6 +7,9 @@ function baseEnv(overrides: Record<string, string | undefined> = {}): NodeJS.Pro
     GOOGLE_CLIENT_SECRET: 'local-dev-google-secret',
     META_APP_ID: 'local-dev-meta-id',
     META_APP_SECRET: 'local-dev-meta-secret',
+    GOOGLE_REDIRECT_URI: 'http://localhost/auth/callback/google',
+    FACEBOOK_REDIRECT_URI: 'http://localhost/auth/callback/facebook',
+    INSTAGRAM_REDIRECT_URI: 'http://localhost/auth/callback/instagram',
     JWT_SECRET: 'local-dev-jwt-secret-at-least-32-chars',
     ENABLE_TEST_HOOKS: 'true',
     SEED_DEMO: 'false',
@@ -66,6 +69,15 @@ describe('validateEnv', () => {
     const result = validateEnv(baseEnv({ JWT_SECRET: undefined }));
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe('JWT_SECRET_MISSING');
+  });
+
+  it('refuse une URI de redirect OAuth manquante', () => {
+    const result = validateEnv(baseEnv({ GOOGLE_REDIRECT_URI: undefined }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe('OAUTH_REDIRECT_MISSING');
+      expect(result.message).toContain('GOOGLE_REDIRECT_URI');
+    }
   });
 
   it('refuse JWT_SECRET d’exemple en production', () => {

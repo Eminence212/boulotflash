@@ -4,6 +4,7 @@ import { LEGAL_DOCS_VERSION } from '@boulotflash/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from './jwt.service';
 import { maskEmail } from './mask';
+import { isPilotPhone, normalizePilotPhone } from './phone';
 
 export type SessionPair = {
   accessToken: string;
@@ -179,11 +180,128 @@ export class SessionService {
         ageConfirmedAt: true,
         activeMode: true,
         createdAt: true,
+        authIdentities: {
+          select: { provider: true, providerUserId: true, createdAt: true },
+        },
       },
     });
     if (!user) {
       throw new HttpException({ code: 'UNAUTHORIZED', message: 'Session invalide.' }, 401);
     }
-    return user;
+    const missing = {
+      phone: !user.phone,
+      displayName: !user.displayName,
+    };
+    return {
+      ...user,
+      missing,
+      needsProfileCompletion: missing.phone || missing.displayName,
+    };
+  }
+
+  async patchMe(
+    userId: string,
+    body: {
+      displayName?: string;
+      phone?: string;
+      avatarUrl?: string | null;
+    },
+  ) {
+    const data: {
+      displayName?: string;
+      phone?: string;
+      phoneConfirmedAt?: Date;
+      avatarUrl?: string | null;
+      status?: 'ACTIVE' | 'INCOMPLETE';
+    } = {};
+
+    if (body.displayName !== undefined) {
+      const name = body.displayName.trim();
+      if (name.length < 2 || name.length > 80) {
+        throw new HttpException(
+          {
+            code: 'VALIDATION',
+            message: 'Le nom doit faire entre 2 et 80 caractères.',
+          },
+          400,
+        );
+      }
+      data.displayName = name;
+    }
+
+    if (body.phone !== undefined) {
+      const phone = normalizePilotPhone(body.phone);
+      if (!phone || !isPilotPhone(phone)) {
+        throw new HttpException(
+          {
+            code: 'VALIDATION',
+            message: 'Téléphone invalide. Format pilote : +243 suivi de 9 chiffres.',
+          },
+          400,
+        );
+      }
+      const taken = await this.prisma.client.user.findFirst({
+        where: { phone, NOT: { id: userId } },
+        select: { id: true },
+      });
+      if (taken) {
+        throw new HttpException(
+          {
+            code: 'PHONE_TAKEN',
+            message: 'Ce numéro est déjà utilisé par un autre compte.',
+          },
+          409,
+        );
+      }
+      data.phone = phone;
+      data.phoneConfirmedAt = new Date();
+    }
+
+    if (body.avatarUrl !== undefined) {
+      data.avatarUrl = body.avatarUrl;
+    }
+
+    if (Object.keys(data).length === 0) {
+      throw new HttpException(
+        { code: 'VALIDATION', message: 'Aucun champ à mettre à jour.' },
+        400,
+      );
+    }
+
+    const current = await this.prisma.client.user.findUnique({
+      where: { id: userId },
+      select: { phone: true, displayName: true },
+    });
+    if (!current) {
+      throw new HttpException(
+        { code: 'UNAUTHORIZED', message: 'Session invalide.' },
+        401,
+      );
+    }
+    const nextPhone = data.phone ?? current.phone;
+    const nextName = data.displayName ?? current.displayName;
+    if (nextPhone && nextName) {
+      data.status = 'ACTIVE';
+    }
+
+    await this.prisma.client.user.update({ where: { id: userId }, data });
+    return this.getUserForMe(userId);
+  }
+
+  async assertHasPhone(userId: string): Promise<void> {
+    const user = await this.prisma.client.user.findUnique({
+      where: { id: userId },
+      select: { phone: true },
+    });
+    if (!user?.phone) {
+      throw new HttpException(
+        {
+          code: 'PHONE_REQUIRED',
+          message:
+            'Un numéro de téléphone est requis avant de postuler ou publier. Renseignez-le dans votre profil.',
+        },
+        403,
+      );
+    }
   }
 }

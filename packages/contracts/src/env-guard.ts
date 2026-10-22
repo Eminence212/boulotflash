@@ -10,6 +10,12 @@ const OAUTH_KEYS = [
   'META_APP_SECRET',
 ] as const;
 
+const OAUTH_REDIRECT_KEYS = [
+  'GOOGLE_REDIRECT_URI',
+  'FACEBOOK_REDIRECT_URI',
+  'INSTAGRAM_REDIRECT_URI',
+] as const;
+
 const PLACEHOLDER_RE =
   /^(replace-me|changeme|change-me|your-|todo|xxx|placeholder|example)/i;
 
@@ -55,6 +61,17 @@ export function validateEnv(env: NodeJS.ProcessEnv = process.env): EnvGuardResul
         ok: false,
         code: 'OAUTH_SECRET_MISSING',
         message: `Secret OAuth manquant ou placeholder : ${key}. Configurez les quatre clés Google/Meta (D34). Aucun adaptateur simulé.`,
+      };
+    }
+  }
+
+  for (const key of OAUTH_REDIRECT_KEYS) {
+    const value = env[key]?.trim() ?? '';
+    if (!value || isPlaceholder(value) || !/^https?:\/\//i.test(value)) {
+      return {
+        ok: false,
+        code: 'OAUTH_REDIRECT_MISSING',
+        message: `URI de redirect OAuth manquante ou invalide : ${key}. Ex. http://localhost/auth/callback/google.`,
       };
     }
   }

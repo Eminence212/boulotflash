@@ -59,6 +59,15 @@ export function validateEnv(env: NodeJS.ProcessEnv = process.env): EnvGuardResul
     }
   }
 
+  if (isPlaceholder(env.JWT_SECRET)) {
+    return {
+      ok: false,
+      code: 'JWT_SECRET_MISSING',
+      message:
+        'JWT_SECRET manquant ou placeholder. Définissez un secret fort pour les jetons d’accès HS256 (étape 08).',
+    };
+  }
+
   const fcmKey = hasFcmOrFirebaseMessaging(env);
   if (fcmKey) {
     return {
@@ -82,6 +91,19 @@ export function validateEnv(env: NodeJS.ProcessEnv = process.env): EnvGuardResul
         ok: false,
         code: 'SEED_DEMO_IN_PRODUCTION',
         message: 'SEED_DEMO est interdit quand APP_ENV=production.',
+      };
+    }
+    const jwt = (env.JWT_SECRET ?? '').trim().toLowerCase();
+    if (
+      jwt.includes('dev-only') ||
+      jwt.includes('example') ||
+      jwt.length < 32
+    ) {
+      return {
+        ok: false,
+        code: 'JWT_SECRET_WEAK',
+        message:
+          'JWT_SECRET trop faible ou d’exemple : interdit quand APP_ENV=production.',
       };
     }
   }

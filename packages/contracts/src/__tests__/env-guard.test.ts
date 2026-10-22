@@ -7,6 +7,7 @@ function baseEnv(overrides: Record<string, string | undefined> = {}): NodeJS.Pro
     GOOGLE_CLIENT_SECRET: 'local-dev-google-secret',
     META_APP_ID: 'local-dev-meta-id',
     META_APP_SECRET: 'local-dev-meta-secret',
+    JWT_SECRET: 'local-dev-jwt-secret-at-least-32-chars',
     ENABLE_TEST_HOOKS: 'true',
     SEED_DEMO: 'false',
     ...overrides,
@@ -59,5 +60,23 @@ describe('validateEnv', () => {
     );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe('TEST_HOOKS_IN_PRODUCTION');
+  });
+
+  it('refuse JWT_SECRET manquant', () => {
+    const result = validateEnv(baseEnv({ JWT_SECRET: undefined }));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe('JWT_SECRET_MISSING');
+  });
+
+  it('refuse JWT_SECRET d’exemple en production', () => {
+    const result = validateEnv(
+      baseEnv({
+        APP_ENV: 'production',
+        ENABLE_TEST_HOOKS: 'false',
+        JWT_SECRET: 'boulotflash-jwt-dev-only-not-for-prod',
+      }),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe('JWT_SECRET_WEAK');
   });
 });

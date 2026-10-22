@@ -312,6 +312,7 @@ model AuthIdentity {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([provider, providerUserId])
   @@map("auth_identities")
 }
 

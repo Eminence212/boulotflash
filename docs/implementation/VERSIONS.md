@@ -35,7 +35,7 @@ Les tests de cette étape tournent avec Jest 30.5.2 : garde de démarrage (`@bou
 
 Étape 07 : `@aws-sdk/s3-request-presigner` aligné sur `@aws-sdk/client-s3`.
 
-Étape 08 : `jose` pour le jeton d'accès HS256. Durée d'hypothèse D17, non validée : accès 15 minutes, refresh 30 jours. Le `JWT_SECRET` du fichier d'exemple est refusé quand `APP_ENV=production`.
+Étape 08 : `jose` 6.2.13 (`npm view jose version`) pour le jeton d'accès HS256. Durée d'hypothèse D17, non validée : accès 15 minutes, refresh 30 jours. Le `JWT_SECRET` du fichier d'exemple / trop faible est refusé quand `APP_ENV=production`.
 
 Étape 08–09 (auth OAuth) : pas d’OTP public. OAuth **toujours réel** (D34) : Google Identity et Meta Graph (Facebook + Instagram). Aucun `OAUTH_ADAPTER=simulated`. Secrets obligatoires au démarrage. Guide : [AUTH_OAUTH_PROVIDERS.md](AUTH_OAUTH_PROVIDERS.md).
 

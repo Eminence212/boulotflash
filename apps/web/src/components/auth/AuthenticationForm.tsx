@@ -23,7 +23,8 @@ type AuthenticationFormProps = PaperProps & {
   onProvider: (provider: AuthProvider) => void;
   error?: string | null;
   message?: string | null;
-  loading?: boolean;
+  /** Provider en cours — loader uniquement sur ce bouton. */
+  loadingProvider?: AuthProvider | null;
 };
 
 /**
@@ -34,7 +35,7 @@ export function AuthenticationForm({
   onProvider,
   error,
   message,
-  loading = false,
+  loadingProvider = null,
   ...paperProps
 }: AuthenticationFormProps) {
   const hintId = useId();
@@ -53,8 +54,9 @@ export function AuthenticationForm({
     },
   });
 
+  const busy = loadingProvider != null;
   const canContinue =
-    form.values.ageConfirmed && form.values.acceptLegal && !loading;
+    form.values.ageConfirmed && form.values.acceptLegal && !busy;
 
   function tryProvider(provider: AuthProvider) {
     const result = form.validate();
@@ -156,7 +158,7 @@ export function AuthenticationForm({
           />
         </Stack>
 
-        {!canContinue && !loading ? (
+        {!canContinue && !busy ? (
           <AppAlert
             id={hintId}
             tone="info"
@@ -173,13 +175,13 @@ export function AuthenticationForm({
             radius="xl"
             size="md"
             fullWidth
-            disabled={!canContinue}
-            loading={loading}
+            disabled={!canContinue || busy}
+            loading={loadingProvider === "google"}
             title={disabledReason}
-            aria-disabled={!canContinue}
+            aria-disabled={!canContinue || busy}
             onClick={() => tryProvider("google")}
             styles={
-              canContinue
+              canContinue && !busy
                 ? {
                     root: {
                       borderColor: tokens.color.border.subtle,
@@ -195,13 +197,13 @@ export function AuthenticationForm({
             radius="xl"
             size="md"
             fullWidth
-            disabled={!canContinue}
-            loading={loading}
+            disabled={!canContinue || busy}
+            loading={loadingProvider === "facebook"}
             title={disabledReason}
-            aria-disabled={!canContinue}
+            aria-disabled={!canContinue || busy}
             onClick={() => tryProvider("facebook")}
             styles={
-              canContinue
+              canContinue && !busy
                 ? {
                     root: {
                       borderColor: tokens.color.border.subtle,
@@ -217,13 +219,13 @@ export function AuthenticationForm({
             radius="xl"
             size="md"
             fullWidth
-            disabled={!canContinue}
-            loading={loading}
+            disabled={!canContinue || busy}
+            loading={loadingProvider === "instagram"}
             title={disabledReason}
-            aria-disabled={!canContinue}
+            aria-disabled={!canContinue || busy}
             onClick={() => tryProvider("instagram")}
             styles={
-              canContinue
+              canContinue && !busy
                 ? {
                     root: {
                       borderColor: tokens.color.border.subtle,

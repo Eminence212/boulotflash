@@ -42,3 +42,167 @@ body {
   color: var(--color-ink, #0b1220);
   font-family: var(--font-body);
 }
+
+/* ——— Global loader (inspiration stockgopass) ——— */
+.bf-global-loader {
+  flex: 1 1 auto;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(62, 164, 255, 0.16) 0%, transparent 45%),
+    radial-gradient(circle at 82% 85%, rgba(62, 164, 255, 0.12) 0%, transparent 42%),
+    var(--color-surface-canvas);
+}
+
+.bf-global-loader-full {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  backdrop-filter: blur(5px);
+}
+
+.bf-global-loader-glow {
+  position: absolute;
+  width: 21rem;
+  height: 21rem;
+  border-radius: 9999px;
+  filter: blur(34px);
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+.bf-global-loader-glow-left {
+  left: -8rem;
+  top: -6rem;
+  background: rgba(62, 164, 255, 0.34);
+}
+
+.bf-global-loader-glow-right {
+  right: -7rem;
+  bottom: -8rem;
+  background: rgba(62, 164, 255, 0.28);
+}
+
+.bf-global-loader-card {
+  position: relative;
+  min-width: min(18.5rem, 92vw);
+  padding: 1.2rem 1.4rem 1.3rem;
+  border: 1px solid var(--color-flash-soft, #e8f4ff);
+  border-radius: 1.1rem;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(255, 255, 255, 0.9) 100%
+  );
+  box-shadow:
+    0 26px 60px rgba(15, 23, 42, 0.1),
+    0 4px 14px rgba(15, 23, 42, 0.06);
+  animation: bf-loader-float 3s ease-in-out infinite;
+}
+
+.bf-global-loader-logo {
+  animation: bf-loader-pulse 1.6s ease-in-out infinite;
+}
+
+.bf-global-loader-orbit {
+  width: 4.3rem;
+  height: 4.3rem;
+  border-radius: 9999px;
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.bf-global-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+}
+
+.bf-global-loader-ring-a {
+  border-top-color: var(--color-flash);
+  border-right-color: rgba(62, 164, 255, 0.35);
+  animation: bf-spin-cw 1s linear infinite;
+}
+
+.bf-global-loader-ring-b {
+  inset: 0.33rem;
+  border-bottom-color: #1a8fff;
+  border-left-color: rgba(62, 164, 255, 0.28);
+  animation: bf-spin-ccw 1.25s linear infinite;
+}
+
+.bf-global-loader-progress {
+  width: min(11rem, 74%);
+  height: 0.22rem;
+  border-radius: 9999px;
+  background: rgba(226, 232, 240, 0.9);
+  overflow: hidden;
+}
+
+.bf-global-loader-progress > span {
+  display: block;
+  width: 35%;
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #e8f4ff, var(--color-flash));
+  animation: bf-loader-progress 1.6s ease-in-out infinite;
+}
+
+@keyframes bf-spin-cw {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bf-spin-ccw {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes bf-loader-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes bf-loader-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes bf-loader-progress {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bf-global-loader-card,
+  .bf-global-loader-logo,
+  .bf-global-loader-ring-a,
+  .bf-global-loader-ring-b,
+  .bf-global-loader-progress > span {
+    animation: none;
+  }
+}

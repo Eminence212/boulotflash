@@ -1,16 +1,10 @@
 import { Suspense } from 'react';
-import { Center, Loader } from '@mantine/core';
+import { GlobalLoader } from '@/components/feedback';
 import { OauthCallbackClient } from '@/components/auth/OauthCallbackClient';
 
 export default function GoogleCallbackPage() {
   return (
-    <Suspense
-      fallback={
-        <Center mih="50dvh">
-          <Loader color="flash" />
-        </Center>
-      }
-    >
+    <Suspense fallback={<GlobalLoader fullscreen message="Connexion Google…" />}>
       <OauthCallbackClient provider="google" />
     </Suspense>
   );

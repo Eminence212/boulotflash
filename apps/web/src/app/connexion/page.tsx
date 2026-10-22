@@ -6,6 +6,7 @@ import {
   AuthenticationForm,
   type AuthProvider,
 } from '@/components/auth/AuthenticationForm';
+import { useLoading } from '@/components/feedback';
 import { apiFetch } from '@/lib/api';
 import {
   buildAuthorizeUrl,
@@ -16,14 +17,17 @@ import {
 
 export default function ConnexionPage() {
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loadingProvider, setLoadingProvider] = useState<AuthProvider | null>(
+    null,
+  );
+  const { showLoader } = useLoading();
 
   async function onProvider(provider: AuthProvider) {
     setError(null);
-    setLoading(true);
+    setLoadingProvider(provider);
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       setError('Non envoyé — vérifiez votre connexion.');
-      setLoading(false);
+      setLoadingProvider(null);
       return;
     }
 
@@ -36,7 +40,7 @@ export default function ConnexionPage() {
           (data as { message?: string }).message ??
             'Configuration OAuth indisponible.',
         );
-        setLoading(false);
+        setLoadingProvider(null);
         return;
       }
 
@@ -55,10 +59,11 @@ export default function ConnexionPage() {
         state,
         codeChallenge,
       });
+      showLoader(`Redirection vers ${provider}…`);
       window.location.assign(url);
     } catch {
       setError('Impossible de démarrer la connexion OAuth.');
-      setLoading(false);
+      setLoadingProvider(null);
     }
   }
 
@@ -67,7 +72,7 @@ export default function ConnexionPage() {
       <AuthenticationForm
         onProvider={onProvider}
         error={error}
-        loading={loading}
+        loadingProvider={loadingProvider}
       />
     </AuthPageShell>
   );

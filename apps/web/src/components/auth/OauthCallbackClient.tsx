@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Center, Loader, Stack, Text } from '@mantine/core';
-import { AppAlert } from '@/components/feedback';
+import { Stack, Text } from '@mantine/core';
+import { AppAlert, GlobalLoader } from '@/components/feedback';
 import { apiFetch, saveAccessToken } from '@/lib/api';
 import {
   clearPkce,
@@ -103,13 +103,9 @@ export function OauthCallbackClient({ provider }: OauthCallbackClientProps) {
   }
 
   return (
-    <Center mih="50dvh">
-      <Stack align="center" gap="sm">
-        <Loader color="flash" />
-        <Text size="sm" c="dimmed">
-          Connexion en cours…
-        </Text>
-      </Stack>
-    </Center>
+    <GlobalLoader
+      fullscreen
+      message={`Finalisation de la connexion ${provider}…`}
+    />
   );
 }

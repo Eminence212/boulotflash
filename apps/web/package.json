@@ -11,6 +11,7 @@
   "dependencies": {
     "@boulotflash/contracts": "workspace:*",
     "@mantine/core": "9.7.3",
+    "@mantine/form": "9.7.3",
     "@mantine/hooks": "9.7.3",
     "@tabler/icons-react": "3.49.0",
     "next": "16.4.2",

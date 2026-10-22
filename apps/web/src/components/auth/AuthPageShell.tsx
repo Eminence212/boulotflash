@@ -1,27 +1,22 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Container, Paper, Stack, Text, Title, Box } from '@mantine/core';
+import { Box, Container, Stack } from '@mantine/core';
 import { BrandLogo } from '@/components/brand/BrandLogo';
 import { tokens } from '@/theme/tokens';
 
 type AuthPageShellProps = {
-  title: ReactNode;
-  subtitle?: string;
   children: ReactNode;
-  /** Largeur max du bloc (mobile-first, s’élargit sur tablette/desktop). */
+  /** Largeur max du bloc (mobile-first). */
   containerSize?: number | string;
 };
 
 /**
- * Gabarit auth inspiré de GO-PASS AuthPageShell :
- * logo hero centré, titre, carte Mantine responsive.
+ * Gabarit auth : logo hero + zone formulaire (Paper fourni par AuthenticationForm).
  */
 export function AuthPageShell({
-  title,
-  subtitle,
   children,
-  containerSize = 440,
+  containerSize = 470,
 }: AuthPageShellProps) {
   return (
     <Box
@@ -44,36 +39,7 @@ export function AuthPageShell({
           <Box style={{ display: 'flex', justifyContent: 'center' }}>
             <BrandLogo size="lg" priority />
           </Box>
-
-          <Stack gap="xs" ta="center">
-            <Title
-              order={1}
-              fz={{ base: 26, sm: 32 }}
-              lh={1.2}
-              style={{
-                fontFamily: 'var(--font-display)',
-                color: tokens.color.brand.ink,
-              }}
-            >
-              {title}
-            </Title>
-            {subtitle ? (
-              <Text c="dimmed" size="sm" maw={360} mx="auto">
-                {subtitle}
-              </Text>
-            ) : null}
-          </Stack>
-
-          <Paper
-            withBorder
-            shadow="sm"
-            radius="lg"
-            p={{ base: 'md', sm: 'xl' }}
-            bg={tokens.color.surface.card}
-            style={{ borderColor: tokens.color.border.subtle }}
-          >
-            {children}
-          </Paper>
+          {children}
         </Stack>
       </Container>
     </Box>

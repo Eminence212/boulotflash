@@ -2,7 +2,7 @@
 
 import { Title, Text, Stack, Group, Badge, Container } from '@mantine/core';
 import { IconBolt } from '@tabler/icons-react';
-import { BrandLogo } from '@/components/brand/BrandLogo';
+import { BrandLogo } from '@/components/brand';
 import { tokens, mantineStatusColors } from '@/theme/tokens';
 
 export default function HomePage() {
@@ -10,7 +10,7 @@ export default function HomePage() {
     <main className="min-h-dvh bg-canvas">
       <Container size={640} px={{ base: 'md', sm: 'xl' }} py={{ base: 'xl', md: 48 }}>
       <Stack gap="lg">
-        <BrandLogo size="md" priority />
+        <BrandLogo size="xl" href="/" priority />
 
         <Title
           order={1}

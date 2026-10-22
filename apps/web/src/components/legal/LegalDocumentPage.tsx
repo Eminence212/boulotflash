@@ -13,7 +13,9 @@ import {
   Loader,
   Center,
 } from '@mantine/core';
-import { BrandLogo } from '@/components/brand/BrandLogo';
+import { BrandLogo } from '@/components/brand';
+import { LegalMarkdown } from '@/components/legal/LegalMarkdown';
+import { prepareLegalMarkdown } from '@/components/legal/prepareLegalMarkdown';
 import { tokens } from '@/theme/tokens';
 
 type LegalDocumentPageProps = {
@@ -23,7 +25,7 @@ type LegalDocumentPageProps = {
 };
 
 /**
- * Affiche un document juridique markdown (version validée D24).
+ * Page juridique : logo réutilisable + contenu formaté (pas de Markdown brut).
  */
 export function LegalDocumentPage({ title, src }: LegalDocumentPageProps) {
   const [body, setBody] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export function LegalDocumentPage({ title, src }: LegalDocumentPageProps) {
         return r.text();
       })
       .then((text) => {
-        if (!cancelled) setBody(text);
+        if (!cancelled) setBody(prepareLegalMarkdown(text));
       })
       .catch(() => {
         if (!cancelled) setError('Document indisponible pour le moment.');
@@ -51,48 +53,42 @@ export function LegalDocumentPage({ title, src }: LegalDocumentPageProps) {
     <main className="min-h-dvh bg-canvas">
       <Container size={720} px={{ base: 'md', sm: 'xl' }} py={{ base: 'xl', md: 48 }}>
         <Stack gap="lg">
-          <BrandLogo size="sm" />
+          <BrandLogo size="xl" href="/" priority centered />
+
           <Anchor component={Link} href="/connexion" size="sm">
             ← Retour à la connexion
           </Anchor>
+
           <Paper
             withBorder
             shadow="sm"
-            radius="lg"
+            radius="md"
             p={{ base: 'md', sm: 'xl' }}
             style={{ borderColor: tokens.color.border.subtle }}
           >
             <Stack gap="md">
-              <Title order={1} style={{ fontFamily: 'var(--font-display)' }}>
+              <Title order={1} fw={900}>
                 {title}
               </Title>
               <Text size="xs" c="dimmed">
                 Version 0.1 — validée localement (D24, 22 octobre 2026).
               </Text>
+
               {error ? (
                 <Text c="red" size="sm">
                   {error}
                 </Text>
               ) : null}
+
               {!body && !error ? (
                 <Center py="xl">
                   <Loader color="flash" size="sm" />
                 </Center>
               ) : null}
+
               {body ? (
                 <ScrollArea.Autosize mah="70dvh" type="auto" offsetScrollbars>
-                  <Text
-                    component="pre"
-                    size="sm"
-                    style={{
-                      whiteSpace: 'pre-wrap',
-                      fontFamily: 'var(--font-body)',
-                      lineHeight: 1.55,
-                      margin: 0,
-                    }}
-                  >
-                    {body}
-                  </Text>
+                  <LegalMarkdown content={body} />
                 </ScrollArea.Autosize>
               ) : null}
             </Stack>

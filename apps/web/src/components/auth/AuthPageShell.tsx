@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { Box, Container, Stack } from '@mantine/core';
-import { BrandLogo } from '@/components/brand/BrandLogo';
+import { BrandLogo } from '@/components/brand';
 import { tokens } from '@/theme/tokens';
 
 type AuthPageShellProps = {
@@ -36,9 +36,7 @@ export function AuthPageShell({
         py={{ base: 'xl', sm: 48, md: 64 }}
       >
         <Stack gap="lg" align="stretch">
-          <Box style={{ display: 'flex', justifyContent: 'center' }}>
-            <BrandLogo size="lg" priority />
-          </Box>
+          <BrandLogo size="xl" href="/" priority centered />
           {children}
         </Stack>
       </Container>

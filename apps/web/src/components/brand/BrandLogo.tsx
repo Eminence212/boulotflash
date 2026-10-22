@@ -1,48 +1,88 @@
 'use client';
 
-import { Box } from '@mantine/core';
+import Link from 'next/link';
+import { Box, UnstyledButton } from '@mantine/core';
 import { tokens } from '@/theme/tokens';
 
+export type BrandLogoSize = 'sm' | 'md' | 'lg' | 'xl';
+
 type BrandLogoProps = {
-  /** Variante compacte (nav) ou hero (auth / accueil). */
-  size?: 'sm' | 'md' | 'lg';
-  /** Priorité de chargement pour LCP sur l’écran connexion. */
+  /**
+   * Taille responsive du wordmark.
+   * - sm : barre compacte
+   * - md : pages secondaires
+   * - lg / xl : auth / hero
+   */
+  size?: BrandLogoSize;
+  /** Priorité LCP (écran connexion / accueil). */
   priority?: boolean;
+  /** Lien optionnel (ex. vers `/` ou `/connexion`). */
+  href?: string;
+  /** Centrer le logo dans son conteneur. */
+  centered?: boolean;
 };
 
-const WIDTHS = {
-  sm: 'clamp(120px, 36vw, 160px)',
-  md: 'clamp(180px, 48vw, 240px)',
-  lg: 'clamp(220px, 62vw, 320px)',
-} as const;
+/** Largeurs visibles — xl pour écrans légaux / auth. */
+const WIDTHS: Record<BrandLogoSize, string> = {
+  sm: 'clamp(160px, 42vw, 200px)',
+  md: 'clamp(220px, 52vw, 300px)',
+  lg: 'clamp(280px, 68vw, 380px)',
+  xl: 'clamp(300px, 78vw, 440px)',
+};
 
 /**
- * Wordmark BoulotFlash — taille responsive (même principe que Logo GO-PASS).
+ * Logo / wordmark BoulotFlash réutilisable (auth, légal, accueil, nav).
  */
-export function BrandLogo({ size = 'md', priority = false }: BrandLogoProps) {
-  return (
+export function BrandLogo({
+  size = 'lg',
+  priority = false,
+  href,
+  centered = false,
+}: BrandLogoProps) {
+  const img = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/logo/boulotflash.svg"
+      alt={tokens.copy.brand}
+      width={720}
+      height={160}
+      loading={priority ? 'eager' : 'lazy'}
+      decoding="async"
+      fetchPriority={priority ? 'high' : 'auto'}
+      style={{
+        width: WIDTHS[size],
+        maxWidth: '100%',
+        height: 'auto',
+        display: 'block',
+      }}
+    />
+  );
+
+  const inner = href ? (
+    <UnstyledButton
+      component={Link}
+      href={href}
+      aria-label={`${tokens.copy.brand} — accueil`}
+      style={{ display: 'inline-flex', maxWidth: '100%' }}
+    >
+      {img}
+    </UnstyledButton>
+  ) : (
     <Box
       component="span"
       display="inline-flex"
       style={{ maxWidth: '100%' }}
       aria-label={tokens.copy.brand}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/logo/boulotflash.svg"
-        alt={tokens.copy.brand}
-        width={720}
-        height={160}
-        loading={priority ? 'eager' : 'lazy'}
-        decoding="async"
-        fetchPriority={priority ? 'high' : 'auto'}
-        style={{
-          width: WIDTHS[size],
-          maxWidth: '100%',
-          height: 'auto',
-          display: 'block',
-        }}
-      />
+      {img}
+    </Box>
+  );
+
+  if (!centered) return inner;
+
+  return (
+    <Box style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+      {inner}
     </Box>
   );
 }

@@ -1,0 +1,32 @@
+{
+	# Logs sans query string (URL pré-signées S3) : on n'écrit que le path.
+	log {
+		output stdout
+		format filter {
+			wrap console
+			fields {
+				uri delete
+				request>uri delete
+				request>uri_path delete
+			}
+		}
+	}
+}
+
+:80 {
+	encode gzip
+
+	# Préfixe /api conservé → Nest globalPrefix api/v1
+	handle /api/* {
+		reverse_proxy api:3001
+	}
+
+	# /s3/* → MinIO (préfixe retiré)
+	handle_path /s3/* {
+		reverse_proxy s3:9000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

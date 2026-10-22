@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="8" fill="#3EA4FF"/>
+  <!-- Éclair centré (échelle 88 → 32) -->
+  <path d="M17.82 7.64 L11.27 16.36 H15.27 L13.09 24.36 L20 14.91 H16 Z" fill="#FFFFFF"/>
+</svg>

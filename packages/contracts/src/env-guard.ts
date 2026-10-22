@@ -1,0 +1,104 @@
+/**
+ * Garde de démarrage API / worker (étape 04).
+ * Ne journalise jamais la valeur d'un secret.
+ */
+
+const OAUTH_KEYS = [
+  'GOOGLE_CLIENT_ID',
+  'GOOGLE_CLIENT_SECRET',
+  'META_APP_ID',
+  'META_APP_SECRET',
+] as const;
+
+const PLACEHOLDER_RE =
+  /^(replace-me|changeme|change-me|your-|todo|xxx|placeholder|example)/i;
+
+export type EnvGuardResult =
+  | { ok: true }
+  | { ok: false; code: string; message: string };
+
+function isTruthy(value: string | undefined): boolean {
+  if (!value) return false;
+  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
+}
+
+function isPlaceholder(value: string | undefined): boolean {
+  if (value === undefined || value.trim() === '') return true;
+  return PLACEHOLDER_RE.test(value.trim());
+}
+
+function hasFcmOrFirebaseMessaging(env: NodeJS.ProcessEnv): string | null {
+  for (const key of Object.keys(env)) {
+    if (key.startsWith('FCM_')) return key;
+    const upper = key.toUpperCase();
+    if (
+      upper.includes('FIREBASE') &&
+      (upper.includes('MESSAGING') ||
+        upper.includes('FCM') ||
+        upper === 'FIREBASE_SERVER_KEY' ||
+        upper === 'FIREBASE_MESSAGING_SENDER_ID')
+    ) {
+      return key;
+    }
+  }
+  return null;
+}
+
+/**
+ * Valide l'environnement sans quitter le processus.
+ * Utilisé par les tests et par assertEnvOrExit.
+ */
+export function validateEnv(env: NodeJS.ProcessEnv = process.env): EnvGuardResult {
+  for (const key of OAUTH_KEYS) {
+    if (isPlaceholder(env[key])) {
+      return {
+        ok: false,
+        code: 'OAUTH_SECRET_MISSING',
+        message: `Secret OAuth manquant ou placeholder : ${key}. Configurez les quatre clés Google/Meta (D34). Aucun adaptateur simulé.`,
+      };
+    }
+  }
+
+  const fcmKey = hasFcmOrFirebaseMessaging(env);
+  if (fcmKey) {
+    return {
+      ok: false,
+      code: 'FCM_FORBIDDEN',
+      message: `Variable push interdite au pilote : ${fcmKey}. Notifications = in-app uniquement (D36).`,
+    };
+  }
+
+  const appEnv = (env.APP_ENV ?? 'development').trim().toLowerCase();
+  if (appEnv === 'production') {
+    if (isTruthy(env.ENABLE_TEST_HOOKS)) {
+      return {
+        ok: false,
+        code: 'TEST_HOOKS_IN_PRODUCTION',
+        message: 'ENABLE_TEST_HOOKS est interdit quand APP_ENV=production.',
+      };
+    }
+    if (isTruthy(env.SEED_DEMO)) {
+      return {
+        ok: false,
+        code: 'SEED_DEMO_IN_PRODUCTION',
+        message: 'SEED_DEMO est interdit quand APP_ENV=production.',
+      };
+    }
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Arrête le processus si la garde échoue. N'écrit jamais la valeur d'un secret.
+ */
+export function assertEnvOrExit(
+  env: NodeJS.ProcessEnv = process.env,
+  log: (msg: string) => void = console.error,
+): void {
+  const result = validateEnv(env);
+  if (!result.ok) {
+    log(`[env-guard] ${result.code}: ${result.message}`);
+    process.exit(1);
+  }
+}

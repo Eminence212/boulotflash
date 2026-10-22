@@ -1,0 +1,16 @@
+{
+  "name": "boulotflash",
+  "private": true,
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r --filter @boulotflash/contracts --filter @boulotflash/web run test",
+    "lint": "pnpm -r run lint --if-present"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

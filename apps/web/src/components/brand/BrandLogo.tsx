@@ -18,16 +18,21 @@ type BrandLogoProps = {
   priority?: boolean;
   /** Lien optionnel (ex. vers `/` ou `/connexion`). */
   href?: string;
-  /** Centrer le logo dans son conteneur. */
+  /** Centrer le logo dans son conteneur (même largeur que le formulaire). */
   centered?: boolean;
+  /**
+   * Décalage optique (px) pour les wordmarks asymétriques (icône à gauche).
+   * Positif = vers la droite.
+   */
+  opticalOffset?: number;
 };
 
-/** Largeurs visibles — xl pour écrans légaux / auth. */
+/** Largeurs visibles — calées sur le viewBox recadré (~488×116). */
 const WIDTHS: Record<BrandLogoSize, string> = {
-  sm: 'clamp(160px, 42vw, 200px)',
-  md: 'clamp(220px, 52vw, 300px)',
-  lg: 'clamp(280px, 68vw, 380px)',
-  xl: 'clamp(300px, 78vw, 440px)',
+  sm: 'clamp(140px, 38vw, 180px)',
+  md: 'clamp(200px, 48vw, 280px)',
+  lg: 'clamp(260px, 70vw, 360px)',
+  xl: 'clamp(280px, 78vw, 400px)',
 };
 
 /**
@@ -38,14 +43,15 @@ export function BrandLogo({
   priority = false,
   href,
   centered = false,
+  opticalOffset = 0,
 }: BrandLogoProps) {
   const img = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src="/logo/boulotflash.svg"
       alt={tokens.copy.brand}
-      width={720}
-      height={160}
+      width={488}
+      height={116}
       loading={priority ? 'eager' : 'lazy'}
       decoding="async"
       fetchPriority={priority ? 'high' : 'auto'}
@@ -54,6 +60,7 @@ export function BrandLogo({
         maxWidth: '100%',
         height: 'auto',
         display: 'block',
+        transform: opticalOffset ? `translateX(${opticalOffset}px)` : undefined,
       }}
     />
   );
@@ -81,7 +88,13 @@ export function BrandLogo({
   if (!centered) return inner;
 
   return (
-    <Box style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+    <Box
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        width: '100%',
+      }}
+    >
       {inner}
     </Box>
   );

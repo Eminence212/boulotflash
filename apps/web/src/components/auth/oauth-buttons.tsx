@@ -11,7 +11,7 @@ function GoogleIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="xMidYMid"
       viewBox="0 0 256 262"
-      style={{ width: 14, height: 14 }}
+      style={{ width: 18, height: 18 }}
       aria-hidden
       {...props}
     >
@@ -40,7 +40,7 @@ function FacebookIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
-      style={{ width: 14, height: 14 }}
+      style={{ width: 18, height: 18 }}
       aria-hidden
       {...props}
     >
@@ -57,7 +57,7 @@ function InstagramIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
-      style={{ width: 14, height: 14 }}
+      style={{ width: 18, height: 18 }}
       aria-hidden
       {...props}
     >

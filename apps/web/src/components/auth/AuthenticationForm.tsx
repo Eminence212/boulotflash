@@ -1,16 +1,17 @@
 'use client';
 
+import { useId } from 'react';
 import Link from 'next/link';
 import {
   Alert,
   Anchor,
   Checkbox,
   Divider,
-  Group,
   Paper,
   type PaperProps,
   Stack,
   Text,
+  Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { tokens } from '@/theme/tokens';
@@ -26,26 +27,29 @@ type AuthenticationFormProps = PaperProps & {
   onProvider: (provider: AuthProvider) => void;
   error?: string | null;
   message?: string | null;
+  loading?: boolean;
 };
 
 /**
- * Formulaire de connexion OAuth — style Mantine AuthenticationForm
- * (Paper, boutons sociaux radius xl, cases d’acceptation).
+ * Connexion OAuth — consentement d’abord, puis choix du fournisseur.
  * Pas d’e-mail / mot de passe (D29).
  */
 export function AuthenticationForm({
   onProvider,
   error,
   message,
+  loading = false,
   ...paperProps
 }: AuthenticationFormProps) {
+  const hintId = useId();
   const form = useForm({
     initialValues: {
       ageConfirmed: false,
       acceptLegal: false,
     },
     validate: {
-      ageConfirmed: (v) => (v ? null : 'Confirmez que vous avez au moins 18 ans.'),
+      ageConfirmed: (v) =>
+        v ? null : 'Confirmez que vous avez au moins 18 ans.',
       acceptLegal: (v) =>
         v
           ? null
@@ -54,7 +58,7 @@ export function AuthenticationForm({
   });
 
   const canContinue =
-    form.values.ageConfirmed && form.values.acceptLegal;
+    form.values.ageConfirmed && form.values.acceptLegal && !loading;
 
   function tryProvider(provider: AuthProvider) {
     const result = form.validate();
@@ -62,128 +66,200 @@ export function AuthenticationForm({
     onProvider(provider);
   }
 
-  const oauthButtons = (
-    <>
-      <GoogleButton
-        radius="xl"
-        disabled={!canContinue}
-        onClick={() => tryProvider('google')}
-      >
-        Google
-      </GoogleButton>
-      <FacebookButton
-        radius="xl"
-        disabled={!canContinue}
-        onClick={() => tryProvider('facebook')}
-      >
-        Facebook
-      </FacebookButton>
-      <InstagramButton
-        radius="xl"
-        disabled={!canContinue}
-        onClick={() => tryProvider('instagram')}
-      >
-        Instagram
-      </InstagramButton>
-    </>
-  );
+  const disabledReason = !form.values.ageConfirmed || !form.values.acceptLegal
+    ? 'Cochez les deux cases ci-dessus pour activer la connexion.'
+    : undefined;
 
   return (
-    <Paper radius="md" p="lg" withBorder {...paperProps}>
-      <Text
-        size="lg"
-        fw={500}
-        style={{ fontFamily: 'var(--font-display)' }}
-      >
-        Bienvenue sur {tokens.copy.brand}, connectez-vous avec
-      </Text>
+    <Paper
+      radius="md"
+      p={{ base: 'lg', sm: 'xl' }}
+      withBorder
+      shadow="sm"
+      style={{ borderColor: tokens.color.border.subtle }}
+      {...paperProps}
+    >
+      <Stack gap="lg">
+        <Stack gap={6}>
+          <Title
+            order={1}
+            fz={{ base: 22, sm: 24 }}
+            fw={800}
+            style={{ fontFamily: 'var(--font-display)', lineHeight: 1.25 }}
+          >
+            Connexion
+          </Title>
+          <Text size="sm" c="dimmed" style={{ lineHeight: 1.5 }}>
+            Missions courtes à Kinshasa — un compte Google, Facebook ou
+            Instagram suffit. Pas de mot de passe ni de code SMS.
+          </Text>
+        </Stack>
 
-      {/* Desktop / tablette : boutons côte à côte comme le demo Mantine */}
-      <Group
-        grow
-        mb="md"
-        mt="md"
-        preventGrowOverflow={false}
-        visibleFrom="sm"
-      >
-        {oauthButtons}
-      </Group>
-      {/* Mobile : pile pleine largeur */}
-      <Stack gap="sm" mb="md" mt="md" hiddenFrom="sm">
-        {oauthButtons}
+        <Stack gap="sm" role="group" aria-labelledby={`${hintId}-consent`}>
+          <Text
+            id={`${hintId}-consent`}
+            size="xs"
+            tt="uppercase"
+            fw={700}
+            c="dimmed"
+            lts={0.04}
+          >
+            Avant de continuer
+          </Text>
+
+          <Checkbox
+            size="md"
+            label="J’ai au moins 18 ans"
+            checked={form.values.ageConfirmed}
+            onChange={(event) => {
+              form.setFieldValue('ageConfirmed', event.currentTarget.checked);
+              form.clearFieldError('ageConfirmed');
+            }}
+            error={form.errors.ageConfirmed}
+            styles={{
+              body: { alignItems: 'flex-start' },
+              label: { paddingTop: 2, lineHeight: 1.45 },
+              inner: { marginTop: 2 },
+            }}
+          />
+
+          <Checkbox
+            size="md"
+            label={
+              <Text size="sm" component="span" style={{ lineHeight: 1.45 }}>
+                J’accepte les{' '}
+                <Anchor
+                  component={Link}
+                  href="/conditions"
+                  target="_blank"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Conditions d’utilisation
+                </Anchor>{' '}
+                et la{' '}
+                <Anchor
+                  component={Link}
+                  href="/confidentialite"
+                  target="_blank"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Politique de confidentialité
+                </Anchor>
+              </Text>
+            }
+            checked={form.values.acceptLegal}
+            onChange={(event) => {
+              form.setFieldValue('acceptLegal', event.currentTarget.checked);
+              form.clearFieldError('acceptLegal');
+            }}
+            error={form.errors.acceptLegal}
+            styles={{
+              body: { alignItems: 'flex-start' },
+              label: { paddingTop: 2 },
+              inner: { marginTop: 2 },
+            }}
+          />
+        </Stack>
+
+        {!canContinue && !loading ? (
+          <Text
+            id={hintId}
+            size="sm"
+            c="dimmed"
+            px="sm"
+            py="xs"
+            style={{
+              background: tokens.color.surface.canvasTint,
+              borderRadius: 8,
+              lineHeight: 1.45,
+            }}
+          >
+            Cochez les deux cases pour activer les boutons de connexion.
+          </Text>
+        ) : null}
+
+        <Divider label="Continuer avec" labelPosition="center" />
+
+        <Stack gap="sm" aria-describedby={!canContinue ? hintId : undefined}>
+          <GoogleButton
+            radius="xl"
+            size="md"
+            fullWidth
+            disabled={!canContinue}
+            loading={loading}
+            title={disabledReason}
+            aria-disabled={!canContinue}
+            onClick={() => tryProvider('google')}
+            styles={
+              canContinue
+                ? {
+                    root: {
+                      borderColor: tokens.color.border.subtle,
+                      fontWeight: 600,
+                    },
+                  }
+                : undefined
+            }
+          >
+            Google
+          </GoogleButton>
+          <FacebookButton
+            radius="xl"
+            size="md"
+            fullWidth
+            disabled={!canContinue}
+            loading={loading}
+            title={disabledReason}
+            aria-disabled={!canContinue}
+            onClick={() => tryProvider('facebook')}
+            styles={
+              canContinue
+                ? {
+                    root: {
+                      borderColor: tokens.color.border.subtle,
+                      fontWeight: 600,
+                    },
+                  }
+                : undefined
+            }
+          >
+            Facebook
+          </FacebookButton>
+          <InstagramButton
+            radius="xl"
+            size="md"
+            fullWidth
+            disabled={!canContinue}
+            loading={loading}
+            title={disabledReason}
+            aria-disabled={!canContinue}
+            onClick={() => tryProvider('instagram')}
+            styles={
+              canContinue
+                ? {
+                    root: {
+                      borderColor: tokens.color.border.subtle,
+                      fontWeight: 600,
+                    },
+                  }
+                : undefined
+            }
+          >
+            Instagram
+          </InstagramButton>
+        </Stack>
+
+        {error ? (
+          <Alert color="red" variant="light" title="Connexion" radius="md">
+            {error}
+          </Alert>
+        ) : null}
+        {message ? (
+          <Alert color="flash" variant="light" title="Bientôt" radius="md">
+            {message}
+          </Alert>
+        ) : null}
       </Stack>
-
-      <Divider
-        label="Pas de mot de passe ni de code SMS"
-        labelPosition="center"
-        my="lg"
-      />
-
-      <Stack>
-        <Checkbox
-          label="J’ai au moins 18 ans"
-          checked={form.values.ageConfirmed}
-          onChange={(event) =>
-            form.setFieldValue('ageConfirmed', event.currentTarget.checked)
-          }
-          error={form.errors.ageConfirmed}
-        />
-
-        <Checkbox
-          label={
-            <Text size="sm" component="span">
-              J’accepte les{' '}
-              <Anchor
-                component={Link}
-                href="/conditions"
-                target="_blank"
-                onClick={(e) => e.stopPropagation()}
-              >
-                Conditions d’utilisation
-              </Anchor>{' '}
-              et la{' '}
-              <Anchor
-                component={Link}
-                href="/confidentialite"
-                target="_blank"
-                onClick={(e) => e.stopPropagation()}
-              >
-                Politique de confidentialité
-              </Anchor>
-            </Text>
-          }
-          checked={form.values.acceptLegal}
-          onChange={(event) =>
-            form.setFieldValue('acceptLegal', event.currentTarget.checked)
-          }
-          error={form.errors.acceptLegal}
-          styles={{ body: { alignItems: 'flex-start' } }}
-        />
-      </Stack>
-
-      <Group justify="space-between" mt="xl" wrap="wrap">
-        <Text size="xs" c="dimmed" maw="70%">
-          {canContinue
-            ? 'Choisissez un fournisseur ci-dessus.'
-            : 'Cochez les deux cases pour activer les boutons.'}
-        </Text>
-      </Group>
-
-      {error ? (
-        <Alert color="red" variant="light" title="Connexion" radius="md" mt="md">
-          {error}
-        </Alert>
-      ) : null}
-      {message ? (
-        <Alert color="flash" variant="light" title="Bientôt" radius="md" mt="md">
-          {message}
-        </Alert>
-      ) : null}
-
-      <Text size="xs" c="dimmed" ta="center" mt="lg">
-        Déconnexion disponible dans le profil. Les comptes admin ne passent pas
-        par cet écran.
-      </Text>
     </Paper>
   );
 }

@@ -7,16 +7,16 @@ import { tokens } from '@/theme/tokens';
 
 type AuthPageShellProps = {
   children: ReactNode;
-  /** Largeur max du bloc (mobile-first). */
+  /** Largeur max du bloc (mobile-first) — logo et formulaire partagent cette colonne. */
   containerSize?: number | string;
 };
 
 /**
- * Gabarit auth : logo hero + zone formulaire (Paper fourni par AuthenticationForm).
+ * Gabarit auth : une seule colonne (logo centré sur la largeur du formulaire).
  */
 export function AuthPageShell({
   children,
-  containerSize = 470,
+  containerSize = 420,
 }: AuthPageShellProps) {
   return (
     <Box
@@ -32,12 +32,18 @@ export function AuthPageShell({
       <Container
         size={containerSize}
         w="100%"
-        px={{ base: 'md', xs: 'lg', sm: 'xl' }}
-        py={{ base: 'xl', sm: 48, md: 64 }}
+        px={{ base: 'md', xs: 'lg' }}
+        py={{ base: 'xl', sm: 40, md: 56 }}
       >
-        <Stack gap="lg" align="stretch">
-          <BrandLogo size="xl" href="/" priority centered />
-          {children}
+        <Stack gap="md" align="stretch" w="100%">
+          <BrandLogo
+            size="xl"
+            href="/"
+            priority
+            centered
+            opticalOffset={6}
+          />
+          <Box w="100%">{children}</Box>
         </Stack>
       </Container>
     </Box>

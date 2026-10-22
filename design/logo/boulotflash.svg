@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 160" role="img" aria-label="BoulotFlash">
+  <title>BoulotFlash</title>
+  <!-- Light / default: Boulot ink, Flash sky blue — same lockup as adopted logos -->
+  <rect x="8" y="36" width="72" height="72" rx="18" fill="#3EA4FF"/>
+  <path d="M54.5 48 L35 78.5 H47.5 L41.5 104 L66.5 68 H52.5 Z" fill="#FFFFFF"/>
+  <g font-family="Sora, Plus Jakarta Sans, Arial Black, Helvetica, sans-serif" font-size="58" font-weight="800" letter-spacing="-1.2">
+    <text x="100" y="94" fill="#0B1220">Boulot</text>
+    <text x="318" y="94" fill="#3EA4FF" font-style="italic">Flash</text>
+  </g>
+  <path d="M328 112 C368 106, 418 106, 472 114" fill="none" stroke="#3EA4FF" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M342 122 C378 118, 418 118, 458 124" fill="none" stroke="#3EA4FF" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+</svg>

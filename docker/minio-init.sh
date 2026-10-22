@@ -15,7 +15,8 @@ done
 mc mb --ignore-existing "local/${S3_BUCKET_MEDIA}"
 mc mb --ignore-existing "local/${S3_BUCKET_PRIVATE}"
 
-# Chiffrement bucket AES256 (évaluation locale)
+# Accès anonyme interdit (les deux buckets) — chiffrement au repos via MINIO_KMS_SECRET_KEY
+mc anonymous set none "local/${S3_BUCKET_MEDIA}" || true
 mc anonymous set none "local/${S3_BUCKET_PRIVATE}" || true
 
 echo "Buckets ready: ${S3_BUCKET_MEDIA}, ${S3_BUCKET_PRIVATE}"

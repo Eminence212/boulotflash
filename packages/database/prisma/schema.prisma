@@ -242,50 +242,50 @@ enum ExportRequestStatus {
 // ——— Models ———
 
 model User {
-  id                String     @id @default(uuid()) @db.Uuid
-  username          String?
-  phone             String?
-  email             String?
-  passwordHash      String?    @map("password_hash")
-  status            UserStatus @default(INCOMPLETE)
-  locale            String     @default("fr")
-  displayName       String?    @map("display_name") @db.VarChar(80)
-  avatarUrl         String?    @map("avatar_url")
-  phoneConfirmedAt  DateTime?  @map("phone_confirmed_at") @db.Timestamptz(6)
-  ageConfirmedAt    DateTime?  @map("age_confirmed_at") @db.Timestamptz(6)
-  activeMode        String?    @map("active_mode")
-  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
-  lastLoginAt       DateTime?  @map("last_login_at") @db.Timestamptz(6)
+  id               String     @id @default(uuid()) @db.Uuid
+  username         String?
+  phone            String?
+  email            String?
+  passwordHash     String?    @map("password_hash")
+  status           UserStatus @default(INCOMPLETE)
+  locale           String     @default("fr")
+  displayName      String?    @map("display_name") @db.VarChar(80)
+  avatarUrl        String?    @map("avatar_url")
+  phoneConfirmedAt DateTime?  @map("phone_confirmed_at") @db.Timestamptz(6)
+  ageConfirmedAt   DateTime?  @map("age_confirmed_at") @db.Timestamptz(6)
+  activeMode       String?    @map("active_mode")
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastLoginAt      DateTime?  @map("last_login_at") @db.Timestamptz(6)
 
-  roles              UserRole[]
-  authIdentities     AuthIdentity[]
-  refreshTokens      RefreshToken[]
-  adminTotpSecret    AdminTotpSecret?
-  recoveryCodes      RecoveryCode[]
-  workerProfile      WorkerProfile?
-  employerProfile    EmployerProfile?
-  subscription       Subscription?
-  applications       Application[]       @relation("ApplicationWorker")
-  jobs               Job[]               @relation("JobEmployer")
-  participationsAsWorker   Participation[] @relation("ParticipationWorker")
-  participationsAsEmployer Participation[] @relation("ParticipationEmployer")
-  notifications      Notification[]
-  payments           Payment[]
-  publicationRights  PublicationRight[]
-  reportsFiled       Report[]            @relation("ReportReporter")
-  structureChecks    StructureCheck[]
-  auditLogs          AuditLog[]
-  termsAcceptances   TermsAcceptance[]
-  phoneChanges       PhoneChange[]
-  contactAccessLogs  ContactAccessLog[]
-  idempotencyKeys    IdempotencyKey[]
-  dataExportRequests DataExportRequest[]
-  jobProfileAlerts   JobProfileAlert[]
-  privateFeedback    PrivateFeedback[]
-  paymentReviews     PaymentReview[]
-  reportAppeals      ReportAppeal[]      @relation("AppealHandler")
-  platformSettingsUpdates PlatformSetting[]
+  roles                    UserRole[]
+  authIdentities           AuthIdentity[]
+  refreshTokens            RefreshToken[]
+  adminTotpSecret          AdminTotpSecret?
+  recoveryCodes            RecoveryCode[]
+  workerProfile            WorkerProfile?
+  employerProfile          EmployerProfile?
+  subscription             Subscription?
+  applications             Application[]       @relation("ApplicationWorker")
+  jobs                     Job[]               @relation("JobEmployer")
+  participationsAsWorker   Participation[]     @relation("ParticipationWorker")
+  participationsAsEmployer Participation[]     @relation("ParticipationEmployer")
+  notifications            Notification[]
+  payments                 Payment[]
+  publicationRights        PublicationRight[]
+  reportsFiled             Report[]            @relation("ReportReporter")
+  structureChecks          StructureCheck[]
+  auditLogs                AuditLog[]
+  termsAcceptances         TermsAcceptance[]
+  phoneChanges             PhoneChange[]
+  contactAccessLogs        ContactAccessLog[]
+  idempotencyKeys          IdempotencyKey[]
+  dataExportRequests       DataExportRequest[]
+  jobProfileAlerts         JobProfileAlert[]
+  privateFeedback          PrivateFeedback[]
+  paymentReviews           PaymentReview[]
+  reportAppeals            ReportAppeal[]      @relation("AppealHandler")
+  platformSettingsUpdates  PlatformSetting[]
 
   @@map("users")
 }
@@ -371,12 +371,12 @@ model OtpChallenge {
 }
 
 model OtpSendLog {
-  id               String     @id @default(uuid()) @db.Uuid
-  phoneMasked      String     @map("phone_masked")
-  provider         String
-  costEstimateCdf  Int?       @map("cost_estimate_cdf")
-  purpose          OtpPurpose
-  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  id              String     @id @default(uuid()) @db.Uuid
+  phoneMasked     String     @map("phone_masked")
+  provider        String
+  costEstimateCdf Int?       @map("cost_estimate_cdf")
+  purpose         OtpPurpose
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("otp_send_logs")
 }
@@ -436,14 +436,14 @@ model Commune {
 }
 
 model Category {
-  id          String  @id @default(uuid()) @db.Uuid
-  slug        String  @unique
-  name        String
-  family      String
-  isSensitive Boolean @default(false) @map("is_sensitive")
+  id              String  @id @default(uuid()) @db.Uuid
+  slug            String  @unique
+  name            String
+  family          String
+  isSensitive     Boolean @default(false) @map("is_sensitive")
   sensitiveIfHome Boolean @default(false) @map("sensitive_if_home")
-  isActive    Boolean @default(true) @map("is_active")
-  sortOrder   Int     @map("sort_order")
+  isActive        Boolean @default(true) @map("is_active")
+  sortOrder       Int     @map("sort_order")
 
   workerProfiles WorkerProfile[] @relation("MainCategory")
   workerSkills   WorkerSkill[]
@@ -487,8 +487,8 @@ model WorkerSkill {
 }
 
 model WorkerAvailability {
-  id              String          @id @default(uuid()) @db.Uuid
-  workerProfileId String          @map("worker_profile_id") @db.Uuid
+  id              String           @id @default(uuid()) @db.Uuid
+  workerProfileId String           @map("worker_profile_id") @db.Uuid
   weekday         Int
   slot            AvailabilitySlot
 
@@ -499,19 +499,19 @@ model WorkerAvailability {
 }
 
 model EmployerProfile {
-  id                  String               @id @default(uuid()) @db.Uuid
-  userId              String               @unique @map("user_id") @db.Uuid
-  type                EmployerType
-  displayName         String               @map("display_name")
-  contactPerson       String?              @map("contact_person")
-  communeId           String?              @map("commune_id") @db.Uuid
-  addressPrivate      String?              @map("address_private")
-  missionPhone        String?              @map("mission_phone")
-  presentation        String?
-  phoneConfirmed      Boolean              @default(false) @map("phone_confirmed")
+  id                   String               @id @default(uuid()) @db.Uuid
+  userId               String               @unique @map("user_id") @db.Uuid
+  type                 EmployerType
+  displayName          String               @map("display_name")
+  contactPerson        String?              @map("contact_person")
+  communeId            String?              @map("commune_id") @db.Uuid
+  addressPrivate       String?              @map("address_private")
+  missionPhone         String?              @map("mission_phone")
+  presentation         String?
+  phoneConfirmed       Boolean              @default(false) @map("phone_confirmed")
   structureCheckStatus StructureCheckStatus @default(NONE) @map("structure_check_status")
-  createdAt           DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   commune Commune? @relation(fields: [communeId], references: [id])
@@ -520,52 +520,52 @@ model EmployerProfile {
 }
 
 model Job {
-  id                 String    @id @default(uuid()) @db.Uuid
-  employerId         String    @map("employer_id") @db.Uuid
+  id                 String     @id @default(uuid()) @db.Uuid
+  employerId         String     @map("employer_id") @db.Uuid
   title              String
   description        String
-  categoryId         String    @map("category_id") @db.Uuid
-  communeId          String    @map("commune_id") @db.Uuid
-  publicLandmark     String?   @map("public_landmark")
-  publicLatitude     Float?    @map("public_latitude")
-  publicLongitude    Float?    @map("public_longitude")
-  addressPrivate     String?   @map("address_private")
-  privateLatitude    Float?    @map("private_latitude")
-  privateLongitude   Float?    @map("private_longitude")
-  missionPhone       String?   @map("mission_phone")
-  atPrivateHome      Boolean   @default(false) @map("at_private_home")
-  startAt            DateTime  @map("start_at") @db.Timestamptz(6)
-  durationHours      Float     @map("duration_hours")
-  workersNeeded      Int       @map("workers_needed")
+  categoryId         String     @map("category_id") @db.Uuid
+  communeId          String     @map("commune_id") @db.Uuid
+  publicLandmark     String?    @map("public_landmark")
+  publicLatitude     Float?     @map("public_latitude")
+  publicLongitude    Float?     @map("public_longitude")
+  addressPrivate     String?    @map("address_private")
+  privateLatitude    Float?     @map("private_latitude")
+  privateLongitude   Float?     @map("private_longitude")
+  missionPhone       String?    @map("mission_phone")
+  atPrivateHome      Boolean    @default(false) @map("at_private_home")
+  startAt            DateTime   @map("start_at") @db.Timestamptz(6)
+  durationHours      Float      @map("duration_hours")
+  workersNeeded      Int        @map("workers_needed")
   amount             Int
   currency           Currency
-  payUnit            PayUnit   @map("pay_unit")
+  payUnit            PayUnit    @map("pay_unit")
   payChannel         PayChannel @map("pay_channel")
-  payTiming          String?   @map("pay_timing")
-  skillsRequired     String?   @map("skills_required")
-  materialConditions String?   @map("material_conditions")
-  transportSupport   Boolean   @default(false) @map("transport_support")
-  mealsSupport       Boolean   @default(false) @map("meals_support")
-  equipmentSupport   Boolean   @default(false) @map("equipment_support")
-  applyDeadline      DateTime  @map("apply_deadline") @db.Timestamptz(6)
-  selectionDeadline  DateTime  @map("selection_deadline") @db.Timestamptz(6)
-  status             JobStatus @default(DRAFT)
-  isFeatured         Boolean   @default(false) @map("is_featured")
-  featuredUntil      DateTime? @map("featured_until") @db.Timestamptz(6)
-  currentVersionId   String?   @map("current_version_id") @db.Uuid
-  publishedAt        DateTime? @map("published_at") @db.Timestamptz(6)
-  expiresAt          DateTime? @map("expires_at") @db.Timestamptz(6)
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  payTiming          String?    @map("pay_timing")
+  skillsRequired     String?    @map("skills_required")
+  materialConditions String?    @map("material_conditions")
+  transportSupport   Boolean    @default(false) @map("transport_support")
+  mealsSupport       Boolean    @default(false) @map("meals_support")
+  equipmentSupport   Boolean    @default(false) @map("equipment_support")
+  applyDeadline      DateTime   @map("apply_deadline") @db.Timestamptz(6)
+  selectionDeadline  DateTime   @map("selection_deadline") @db.Timestamptz(6)
+  status             JobStatus  @default(DRAFT)
+  isFeatured         Boolean    @default(false) @map("is_featured")
+  featuredUntil      DateTime?  @map("featured_until") @db.Timestamptz(6)
+  currentVersionId   String?    @map("current_version_id") @db.Uuid
+  publishedAt        DateTime?  @map("published_at") @db.Timestamptz(6)
+  expiresAt          DateTime?  @map("expires_at") @db.Timestamptz(6)
+  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  employer     User            @relation("JobEmployer", fields: [employerId], references: [id])
-  category     Category        @relation(fields: [categoryId], references: [id])
-  commune      Commune         @relation(fields: [communeId], references: [id])
-  versions     JobVersion[]
-  applications Application[]
-  participations Participation[]
-  profileAlerts JobProfileAlert[]
-  payments     Payment[]
+  employer          User               @relation("JobEmployer", fields: [employerId], references: [id])
+  category          Category           @relation(fields: [categoryId], references: [id])
+  commune           Commune            @relation(fields: [communeId], references: [id])
+  versions          JobVersion[]
+  applications      Application[]
+  participations    Participation[]
+  profileAlerts     JobProfileAlert[]
+  payments          Payment[]
   publicationRights PublicationRight[]
 
   @@index([employerId, createdAt(sort: Desc)])
@@ -580,9 +580,9 @@ model JobVersion {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   createdBy     String   @map("created_by") @db.Uuid
 
-  job              Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  selectionOffers  SelectionOffer[]
-  participations   Participation[]
+  job             Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  selectionOffers SelectionOffer[]
+  participations  Participation[]
 
   @@unique([jobId, versionNumber])
   @@map("job_versions")
@@ -625,32 +625,32 @@ model SelectionOffer {
 }
 
 model Participation {
-  id                        String               @id @default(uuid()) @db.Uuid
-  jobId                     String               @map("job_id") @db.Uuid
-  applicationId             String               @unique @map("application_id") @db.Uuid
-  selectionOfferId          String               @unique @map("selection_offer_id") @db.Uuid
-  workerId                  String               @map("worker_id") @db.Uuid
-  employerId                String               @map("employer_id") @db.Uuid
-  jobVersionId              String               @map("job_version_id") @db.Uuid
-  status                    ParticipationStatus  @default(CONFIRMED)
-  disputeFlag               Boolean              @default(false) @map("dispute_flag")
-  workerOutcome             DeclarationOutcome?  @map("worker_outcome")
-  employerOutcome           DeclarationOutcome?  @map("employer_outcome")
-  workerDeclaredAt          DateTime?            @map("worker_declared_at") @db.Timestamptz(6)
-  employerDeclaredAt        DateTime?            @map("employer_declared_at") @db.Timestamptz(6)
-  employerPaymentDeclaredAt DateTime?            @map("employer_payment_declared_at") @db.Timestamptz(6)
-  workerPaymentConfirmedAt  DateTime?            @map("worker_payment_confirmed_at") @db.Timestamptz(6)
-  contactRevokedAt          DateTime?            @map("contact_revoked_at") @db.Timestamptz(6)
-  createdAt                 DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  cancelledAt               DateTime?            @map("cancelled_at") @db.Timestamptz(6)
+  id                        String              @id @default(uuid()) @db.Uuid
+  jobId                     String              @map("job_id") @db.Uuid
+  applicationId             String              @unique @map("application_id") @db.Uuid
+  selectionOfferId          String              @unique @map("selection_offer_id") @db.Uuid
+  workerId                  String              @map("worker_id") @db.Uuid
+  employerId                String              @map("employer_id") @db.Uuid
+  jobVersionId              String              @map("job_version_id") @db.Uuid
+  status                    ParticipationStatus @default(CONFIRMED)
+  disputeFlag               Boolean             @default(false) @map("dispute_flag")
+  workerOutcome             DeclarationOutcome? @map("worker_outcome")
+  employerOutcome           DeclarationOutcome? @map("employer_outcome")
+  workerDeclaredAt          DateTime?           @map("worker_declared_at") @db.Timestamptz(6)
+  employerDeclaredAt        DateTime?           @map("employer_declared_at") @db.Timestamptz(6)
+  employerPaymentDeclaredAt DateTime?           @map("employer_payment_declared_at") @db.Timestamptz(6)
+  workerPaymentConfirmedAt  DateTime?           @map("worker_payment_confirmed_at") @db.Timestamptz(6)
+  contactRevokedAt          DateTime?           @map("contact_revoked_at") @db.Timestamptz(6)
+  createdAt                 DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  cancelledAt               DateTime?           @map("cancelled_at") @db.Timestamptz(6)
 
-  job            Job             @relation(fields: [jobId], references: [id])
-  application    Application     @relation(fields: [applicationId], references: [id])
-  selectionOffer SelectionOffer  @relation(fields: [selectionOfferId], references: [id])
-  worker         User            @relation("ParticipationWorker", fields: [workerId], references: [id])
-  employer       User            @relation("ParticipationEmployer", fields: [employerId], references: [id])
-  jobVersion     JobVersion      @relation(fields: [jobVersionId], references: [id])
-  feedback       PrivateFeedback[]
+  job               Job                @relation(fields: [jobId], references: [id])
+  application       Application        @relation(fields: [applicationId], references: [id])
+  selectionOffer    SelectionOffer     @relation(fields: [selectionOfferId], references: [id])
+  worker            User               @relation("ParticipationWorker", fields: [workerId], references: [id])
+  employer          User               @relation("ParticipationEmployer", fields: [employerId], references: [id])
+  jobVersion        JobVersion         @relation(fields: [jobVersionId], references: [id])
+  feedback          PrivateFeedback[]
   contactAccessLogs ContactAccessLog[]
 
   @@index([workerId])
@@ -699,13 +699,13 @@ model PlatformSetting {
 }
 
 model Subscription {
-  id               String             @id @default(uuid()) @db.Uuid
-  employerId       String             @unique @map("employer_id") @db.Uuid
-  status           SubscriptionStatus @default(ACTIVE)
-  startedAt        DateTime           @default(now()) @map("started_at") @db.Timestamptz(6)
-  endsAt           DateTime?          @map("ends_at") @db.Timestamptz(6)
-  suspendedReason  String?            @map("suspended_reason")
-  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  id              String             @id @default(uuid()) @db.Uuid
+  employerId      String             @unique @map("employer_id") @db.Uuid
+  status          SubscriptionStatus @default(ACTIVE)
+  startedAt       DateTime           @default(now()) @map("started_at") @db.Timestamptz(6)
+  endsAt          DateTime?          @map("ends_at") @db.Timestamptz(6)
+  suspendedReason String?            @map("suspended_reason")
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
 
   employer User @relation(fields: [employerId], references: [id], onDelete: Cascade)
 
@@ -741,24 +741,24 @@ model Payment {
   createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   confirmedAt       DateTime?      @map("confirmed_at") @db.Timestamptz(6)
 
-  user               User               @relation(fields: [userId], references: [id])
-  job                Job?               @relation(fields: [jobId], references: [id])
-  publicationRights  PublicationRight[]
-  reviews            PaymentReview[]
+  user              User               @relation(fields: [userId], references: [id])
+  job               Job?               @relation(fields: [jobId], references: [id])
+  publicationRights PublicationRight[]
+  reviews           PaymentReview[]
 
   @@map("payments")
 }
 
 model PaymentReview {
-  id           String   @id @default(uuid()) @db.Uuid
-  paymentId    String   @map("payment_id") @db.Uuid
-  reviewerId   String   @map("reviewer_id") @db.Uuid
-  decision     String
-  referenceSeen String? @map("reference_seen")
-  amountSeen   Int?     @map("amount_seen")
-  received     Boolean  @default(false)
-  note         String?
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id            String   @id @default(uuid()) @db.Uuid
+  paymentId     String   @map("payment_id") @db.Uuid
+  reviewerId    String   @map("reviewer_id") @db.Uuid
+  decision      String
+  referenceSeen String?  @map("reference_seen")
+  amountSeen    Int?     @map("amount_seen")
+  received      Boolean  @default(false)
+  note          String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   payment  Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
   reviewer User    @relation(fields: [reviewerId], references: [id])
@@ -787,19 +787,19 @@ model PublicationRight {
 }
 
 model Notification {
-  id           String              @id @default(uuid()) @db.Uuid
-  userId       String              @map("user_id") @db.Uuid
-  channel      NotificationChannel
-  templateKey  String              @map("template_key")
-  title        String
-  message      String
-  status       NotificationStatus  @default(QUEUED)
-  relatedType  String?             @map("related_type")
-  relatedId    String?             @map("related_id") @db.Uuid
-  dedupeKey    String?             @map("dedupe_key")
-  sentAt       DateTime?           @map("sent_at") @db.Timestamptz(6)
-  readAt       DateTime?           @map("read_at") @db.Timestamptz(6)
-  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  id          String              @id @default(uuid()) @db.Uuid
+  userId      String              @map("user_id") @db.Uuid
+  channel     NotificationChannel
+  templateKey String              @map("template_key")
+  title       String
+  message     String
+  status      NotificationStatus  @default(QUEUED)
+  relatedType String?             @map("related_type")
+  relatedId   String?             @map("related_id") @db.Uuid
+  dedupeKey   String?             @map("dedupe_key")
+  sentAt      DateTime?           @map("sent_at") @db.Timestamptz(6)
+  readAt      DateTime?           @map("read_at") @db.Timestamptz(6)
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -827,15 +827,15 @@ model Report {
 }
 
 model StructureCheck {
-  id               String               @id @default(uuid()) @db.Uuid
-  userId           String               @map("user_id") @db.Uuid
-  documentType     String               @map("document_type")
-  documentKey      String               @map("document_key")
-  status           StructureCheckStatus @default(PENDING)
-  reviewerId       String?              @map("reviewer_id") @db.Uuid
-  reviewedAt       DateTime?            @map("reviewed_at") @db.Timestamptz(6)
-  rejectionReason  String?              @map("rejection_reason")
-  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  id              String               @id @default(uuid()) @db.Uuid
+  userId          String               @map("user_id") @db.Uuid
+  documentType    String               @map("document_type")
+  documentKey     String               @map("document_key")
+  status          StructureCheckStatus @default(PENDING)
+  reviewerId      String?              @map("reviewer_id") @db.Uuid
+  reviewedAt      DateTime?            @map("reviewed_at") @db.Timestamptz(6)
+  rejectionReason String?              @map("rejection_reason")
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -947,4 +947,23 @@ model ForbiddenTerm {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("forbidden_terms")
+}
+
+/// Métadonnées S3 (étape 07) — bucket + key seulement, jamais l’URL.
+enum StoredObjectKind {
+  MEDIA
+  PRIVATE
+}
+
+model StoredObject {
+  id          String           @id @default(uuid()) @db.Uuid
+  kind        StoredObjectKind
+  bucket      String
+  key         String
+  contentType String           @map("content_type")
+  byteSize    Int?             @map("byte_size")
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([bucket, key])
+  @@map("stored_objects")
 }

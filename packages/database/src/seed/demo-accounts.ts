@@ -55,11 +55,19 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
       },
     });
     if (existingIdentity) {
+      let phoneUpdate: string | undefined = input.phone ?? undefined;
+      if (phoneUpdate) {
+        const phoneOwner = await prisma.user.findFirst({
+          where: { phone: phoneUpdate, NOT: { id: existingIdentity.userId } },
+          select: { id: true },
+        });
+        if (phoneOwner) phoneUpdate = undefined;
+      }
       return prisma.user.update({
         where: { id: existingIdentity.userId },
         data: {
           email: input.email ?? undefined,
-          phone: input.phone ?? undefined,
+          phone: phoneUpdate,
           displayName: input.displayName,
           status: input.status ?? 'ACTIVE',
         },

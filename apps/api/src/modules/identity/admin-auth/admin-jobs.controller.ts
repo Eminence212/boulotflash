@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  HttpCode,
   HttpException,
   Param,
   Post,
@@ -21,6 +22,7 @@ export class AdminJobsController {
   constructor(private readonly auth: AdminAuthService) {}
 
   @Post(':id/suspend')
+  @HttpCode(200)
   @RequireAdminScopes('MODERATOR', 'SUPER')
   async suspend(
     @Req() req: AdminAuthedRequest,

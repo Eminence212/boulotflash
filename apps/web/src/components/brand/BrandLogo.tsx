@@ -20,11 +20,6 @@ type BrandLogoProps = {
   href?: string;
   /** Centrer le logo dans son conteneur (même largeur que le formulaire). */
   centered?: boolean;
-  /**
-   * Décalage optique (px) pour les wordmarks asymétriques (icône à gauche).
-   * Positif = vers la droite.
-   */
-  opticalOffset?: number;
 };
 
 /** Largeurs visibles — calées sur le viewBox recadré (~488×116). */
@@ -43,7 +38,6 @@ export function BrandLogo({
   priority = false,
   href,
   centered = false,
-  opticalOffset = 0,
 }: BrandLogoProps) {
   const img = (
     // eslint-disable-next-line @next/next/no-img-element
@@ -60,7 +54,6 @@ export function BrandLogo({
         maxWidth: '100%',
         height: 'auto',
         display: 'block',
-        transform: opticalOffset ? `translateX(${opticalOffset}px)` : undefined,
       }}
     />
   );

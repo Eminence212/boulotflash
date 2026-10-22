@@ -36,13 +36,7 @@ export function AuthPageShell({
         py={{ base: 'xl', sm: 40, md: 56 }}
       >
         <Stack gap="md" align="stretch" w="100%">
-          <BrandLogo
-            size="xl"
-            href="/"
-            priority
-            centered
-            opticalOffset={6}
-          />
+          <BrandLogo size="md" href="/" priority centered />
           <Box w="100%">{children}</Box>
         </Stack>
       </Container>

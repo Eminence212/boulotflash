@@ -8,6 +8,10 @@ function toTuple(hex: string): MantineColorsTuple {
   ];
 }
 
+/** Aligné sur ui.mantine.dev : Outfit (titres) + pile système Mantine (corps). */
+const MANTINE_BODY =
+  '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji';
+
 export const boulotflashTheme = createTheme({
   primaryColor: 'flash',
   colors: {
@@ -17,12 +21,21 @@ export const boulotflashTheme = createTheme({
     refus: toTuple(mantineStatusColors.refus.fg),
     alerte: toTuple(mantineStatusColors.alerte.fg),
   },
-  fontFamily: tokens.typography.fontFamily.body,
+  fontFamily: tokens.typography.fontFamily.body || MANTINE_BODY,
   fontFamilyMonospace: tokens.typography.fontFamily.mono,
   headings: {
     fontFamily: tokens.typography.fontFamily.display,
+    fontWeight: '700',
+    sizes: {
+      h1: { fontWeight: '900' },
+      h2: { fontWeight: '800' },
+      h3: { fontWeight: '700' },
+      h4: { fontWeight: '700' },
+      h5: { fontWeight: '700' },
+      h6: { fontWeight: '700' },
+    },
   },
-  defaultRadius: 'xl',
+  defaultRadius: 'md',
   other: {
     status: mantineStatusColors,
     brandFlash: tokens.color.brand.flash,

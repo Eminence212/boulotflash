@@ -14,8 +14,8 @@ export default function HomePage() {
 
         <Title
           order={1}
+          fw={900}
           style={{
-            fontFamily: 'var(--font-display)',
             color: tokens.color.brand.flash,
           }}
         >

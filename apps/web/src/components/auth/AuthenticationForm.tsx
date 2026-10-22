@@ -90,7 +90,11 @@ export function AuthenticationForm({
 
   return (
     <Paper radius="md" p="lg" withBorder {...paperProps}>
-      <Text size="lg" fw={500}>
+      <Text
+        size="lg"
+        fw={500}
+        style={{ fontFamily: 'var(--font-display)' }}
+      >
         Bienvenue sur {tokens.copy.brand}, connectez-vous avec
       </Text>
 

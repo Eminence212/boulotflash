@@ -34,8 +34,9 @@ const TONE: Record<
     title: 'OK',
     Icon: IconCircleCheck,
   },
+  // Bleu Mantine (échelle 0–9) — pas la marque `flash` (tuple plat = contraste faible).
   info: {
-    color: 'flash',
+    color: 'blue',
     title: 'Info',
     Icon: IconInfoCircle,
   },

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useId } from 'react';
-import Link from 'next/link';
+import { useId } from "react";
+import Link from "next/link";
 import {
   Alert,
   Anchor,
@@ -12,16 +12,12 @@ import {
   Stack,
   Text,
   Title,
-} from '@mantine/core';
-import { useForm } from '@mantine/form';
-import { tokens } from '@/theme/tokens';
-import {
-  FacebookButton,
-  GoogleButton,
-  InstagramButton,
-} from './oauth-buttons';
+} from "@mantine/core";
+import { useForm } from "@mantine/form";
+import { tokens } from "@/theme/tokens";
+import { FacebookButton, GoogleButton, InstagramButton } from "./oauth-buttons";
 
-export type AuthProvider = 'google' | 'facebook' | 'instagram';
+export type AuthProvider = "google" | "facebook" | "instagram";
 
 type AuthenticationFormProps = PaperProps & {
   onProvider: (provider: AuthProvider) => void;
@@ -49,11 +45,11 @@ export function AuthenticationForm({
     },
     validate: {
       ageConfirmed: (v) =>
-        v ? null : 'Confirmez que vous avez au moins 18 ans.',
+        v ? null : "Confirmez que vous avez au moins 18 ans.",
       acceptLegal: (v) =>
         v
           ? null
-          : 'Acceptez les Conditions d’utilisation et la Politique de confidentialité.',
+          : "Acceptez les Conditions d’utilisation et la Politique de confidentialité.",
     },
   });
 
@@ -66,14 +62,15 @@ export function AuthenticationForm({
     onProvider(provider);
   }
 
-  const disabledReason = !form.values.ageConfirmed || !form.values.acceptLegal
-    ? 'Cochez les deux cases ci-dessus pour activer la connexion.'
-    : undefined;
+  const disabledReason =
+    !form.values.ageConfirmed || !form.values.acceptLegal
+      ? "Cochez les deux cases ci-dessus pour activer la connexion."
+      : undefined;
 
   return (
     <Paper
       radius="md"
-      p={{ base: 'lg', sm: 'xl' }}
+      p={{ base: "lg", sm: "xl" }}
       withBorder
       shadow="sm"
       style={{ borderColor: tokens.color.border.subtle }}
@@ -85,13 +82,13 @@ export function AuthenticationForm({
             order={1}
             fz={{ base: 22, sm: 24 }}
             fw={800}
-            style={{ fontFamily: 'var(--font-display)', lineHeight: 1.25 }}
+            style={{ fontFamily: "var(--font-display)", lineHeight: 1.25 }}
           >
             Connexion
           </Title>
           <Text size="sm" c="dimmed" style={{ lineHeight: 1.5 }}>
-            Missions courtes à Kinshasa — un compte Google, Facebook ou
-            Instagram suffit. Pas de mot de passe ni de code SMS.
+            Missions courtes — un compte Google, Facebook ou Instagram suffit.
+            Pas de mot de passe ni de code SMS.
           </Text>
         </Stack>
 
@@ -112,12 +109,12 @@ export function AuthenticationForm({
             label="J’ai au moins 18 ans"
             checked={form.values.ageConfirmed}
             onChange={(event) => {
-              form.setFieldValue('ageConfirmed', event.currentTarget.checked);
-              form.clearFieldError('ageConfirmed');
+              form.setFieldValue("ageConfirmed", event.currentTarget.checked);
+              form.clearFieldError("ageConfirmed");
             }}
             error={form.errors.ageConfirmed}
             styles={{
-              body: { alignItems: 'flex-start' },
+              body: { alignItems: "flex-start" },
               label: { paddingTop: 2, lineHeight: 1.45 },
               inner: { marginTop: 2 },
             }}
@@ -127,7 +124,7 @@ export function AuthenticationForm({
             size="md"
             label={
               <Text size="sm" component="span" style={{ lineHeight: 1.45 }}>
-                J’accepte les{' '}
+                J’accepte les{" "}
                 <Anchor
                   component={Link}
                   href="/conditions"
@@ -135,8 +132,8 @@ export function AuthenticationForm({
                   onClick={(e) => e.stopPropagation()}
                 >
                   Conditions d’utilisation
-                </Anchor>{' '}
-                et la{' '}
+                </Anchor>{" "}
+                et la{" "}
                 <Anchor
                   component={Link}
                   href="/confidentialite"
@@ -149,12 +146,12 @@ export function AuthenticationForm({
             }
             checked={form.values.acceptLegal}
             onChange={(event) => {
-              form.setFieldValue('acceptLegal', event.currentTarget.checked);
-              form.clearFieldError('acceptLegal');
+              form.setFieldValue("acceptLegal", event.currentTarget.checked);
+              form.clearFieldError("acceptLegal");
             }}
             error={form.errors.acceptLegal}
             styles={{
-              body: { alignItems: 'flex-start' },
+              body: { alignItems: "flex-start" },
               label: { paddingTop: 2 },
               inner: { marginTop: 2 },
             }}
@@ -189,7 +186,7 @@ export function AuthenticationForm({
             loading={loading}
             title={disabledReason}
             aria-disabled={!canContinue}
-            onClick={() => tryProvider('google')}
+            onClick={() => tryProvider("google")}
             styles={
               canContinue
                 ? {
@@ -211,7 +208,7 @@ export function AuthenticationForm({
             loading={loading}
             title={disabledReason}
             aria-disabled={!canContinue}
-            onClick={() => tryProvider('facebook')}
+            onClick={() => tryProvider("facebook")}
             styles={
               canContinue
                 ? {
@@ -233,7 +230,7 @@ export function AuthenticationForm({
             loading={loading}
             title={disabledReason}
             aria-disabled={!canContinue}
-            onClick={() => tryProvider('instagram')}
+            onClick={() => tryProvider("instagram")}
             styles={
               canContinue
                 ? {

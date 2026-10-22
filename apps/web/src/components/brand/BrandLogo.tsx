@@ -4,37 +4,43 @@ import Link from 'next/link';
 import { Box, UnstyledButton } from '@mantine/core';
 import { tokens } from '@/theme/tokens';
 
+/** Source unique du wordmark (public/). */
+export const BRAND_LOGO_SRC = '/logo/boulotflash.svg';
+
 export type BrandLogoSize = 'sm' | 'md' | 'lg' | 'xl';
+
+/** Taille standard pages (auth, légal, accueil). */
+export const BRAND_LOGO_PAGE_SIZE: BrandLogoSize = 'md';
 
 type BrandLogoProps = {
   /**
    * Taille responsive du wordmark.
-   * - sm : barre compacte
-   * - md : pages secondaires
-   * - lg / xl : auth / hero
+   * - sm : barre compacte / nav
+   * - md : pages (défaut recommandé)
+   * - lg / xl : hero large
    */
   size?: BrandLogoSize;
   /** Priorité LCP (écran connexion / accueil). */
   priority?: boolean;
   /** Lien optionnel (ex. vers `/` ou `/connexion`). */
   href?: string;
-  /** Centrer le logo dans son conteneur (même largeur que le formulaire). */
+  /** Centrer le logo dans la largeur du parent. */
   centered?: boolean;
 };
 
-/** Largeurs visibles — calées sur le viewBox recadré (~488×116). */
+/** Largeurs visibles — viewBox recadré (~488×116). */
 const WIDTHS: Record<BrandLogoSize, string> = {
   sm: 'clamp(140px, 38vw, 180px)',
-  md: 'clamp(200px, 48vw, 280px)',
-  lg: 'clamp(260px, 70vw, 360px)',
-  xl: 'clamp(280px, 78vw, 400px)',
+  md: 'clamp(180px, 44vw, 240px)',
+  lg: 'clamp(220px, 58vw, 300px)',
+  xl: 'clamp(260px, 68vw, 360px)',
 };
 
 /**
- * Logo / wordmark BoulotFlash réutilisable (auth, légal, accueil, nav).
+ * Logo / wordmark BoulotFlash — seul composant à utiliser pour la marque.
  */
 export function BrandLogo({
-  size = 'lg',
+  size = BRAND_LOGO_PAGE_SIZE,
   priority = false,
   href,
   centered = false,
@@ -42,7 +48,7 @@ export function BrandLogo({
   const img = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/logo/boulotflash.svg"
+      src={BRAND_LOGO_SRC}
       alt={tokens.copy.brand}
       width={488}
       height={116}

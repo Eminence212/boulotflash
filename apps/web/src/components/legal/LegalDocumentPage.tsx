@@ -13,7 +13,7 @@ import {
   Loader,
   Center,
 } from '@mantine/core';
-import { BrandLogo } from '@/components/brand';
+import { BrandLogo, BRAND_LOGO_PAGE_SIZE } from '@/components/brand';
 import { LegalMarkdown } from '@/components/legal/LegalMarkdown';
 import { prepareLegalMarkdown } from '@/components/legal/prepareLegalMarkdown';
 import { tokens } from '@/theme/tokens';
@@ -53,7 +53,12 @@ export function LegalDocumentPage({ title, src }: LegalDocumentPageProps) {
     <main className="min-h-dvh bg-canvas">
       <Container size={720} px={{ base: 'md', sm: 'xl' }} py={{ base: 'xl', md: 48 }}>
         <Stack gap="lg">
-          <BrandLogo size="xl" href="/" priority centered />
+          <BrandLogo
+            size={BRAND_LOGO_PAGE_SIZE}
+            href="/"
+            priority
+            centered
+          />
 
           <Anchor component={Link} href="/connexion" size="sm">
             ← Retour à la connexion

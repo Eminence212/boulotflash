@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | Document | Conditions d’utilisation (règles d’utilisation) |
-| Version brouillon | 0.1 — 22 octobre 2026 |
-| Statut | **Projet, non validé** (D24). Affichable en développement et en aide in-app. **Ne pas présenter comme opposable** tant qu’une validation locale n’est pas écrite dans le [registre](REGISTRE_DECISIONS.md). |
+| Version | 0.1 — 22 octobre 2026 |
+| Statut | **Validé localement** (D24, registre 22 octobre 2026). Servi in-app (`terms_documents.kind = TERMS`) et accepté depuis `/connexion`. |
 | Langue | Français simple |
 | Produit | [CDC.md](../CDC.md) §1, §11, §12.4, BF-AUTH-07 |
 | Confidentialité | [POLITIQUE_CONFIDENTIALITE.md](POLITIQUE_CONFIDENTIALITE.md) |

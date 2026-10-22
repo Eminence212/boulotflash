@@ -93,7 +93,14 @@ export class AuthController {
   async devSession(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-    @Body() body: { email?: string },
+    @Body()
+    body: {
+      email?: string;
+      /** Obligatoire : majorité + acceptation CONDITIONS + CONFIDENTIALITÉ. */
+      acceptTerms?: boolean;
+      acceptPrivacy?: boolean;
+      ageConfirmed?: boolean;
+    },
   ): Promise<{ accessToken: string; expiresIn: number; userId: string }> {
     if (!isTruthy(process.env.ENABLE_TEST_HOOKS)) {
       throw new HttpException(
@@ -101,7 +108,22 @@ export class AuthController {
         404,
       );
     }
+    if (
+      body?.acceptTerms !== true ||
+      body?.acceptPrivacy !== true ||
+      body?.ageConfirmed !== true
+    ) {
+      throw new HttpException(
+        {
+          code: 'TERMS_REQUIRED',
+          message:
+            'Confirmez la majorité (18 ans) et acceptez les Conditions d’utilisation et la Politique de confidentialité.',
+        },
+        400,
+      );
+    }
     const user = await this.sessions.createDevUser(body?.email);
+    await this.sessions.recordLegalAcceptance(user.id);
     const pair = await this.sessions.issueSession(
       user.id,
       req.headers['user-agent'],

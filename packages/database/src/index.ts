@@ -5,6 +5,8 @@ export {
   runSeed,
   seedReferentiel,
   seedDemoAccounts,
+  seedLegalDocuments,
+  LEGAL_DOCS_VERSION,
   CATEGORIES,
   COMMUNE_NAMES,
   DEMO_ACTIVE_COMMUNES,

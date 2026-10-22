@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import {
-  Title,
   Text,
   Stack,
   Button,
   Checkbox,
   Alert,
-  Group,
+  Anchor,
 } from '@mantine/core';
+import { AuthPageShell } from '@/components/auth/AuthPageShell';
 import { tokens } from '@/theme/tokens';
 
 type Provider = 'google' | 'facebook' | 'instagram';
@@ -35,8 +35,11 @@ const PROVIDERS: { id: Provider; label: string; src: string }[] = [
 
 export default function ConnexionPage() {
   const [ageOk, setAgeOk] = useState(false);
+  const [legalOk, setLegalOk] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const canContinue = ageOk && legalOk;
 
   function onOAuth(provider: Provider) {
     setError(null);
@@ -49,51 +52,54 @@ export default function ConnexionPage() {
       setError('Confirmez que vous avez au moins 18 ans.');
       return;
     }
+    if (!legalOk) {
+      setError(
+        'Acceptez les Conditions d’utilisation et la Politique de confidentialité.',
+      );
+      return;
+    }
+    // Conservé pour l’étape 09 (verifiers OAuth) — acceptation déjà cochée côté UI.
+    try {
+      sessionStorage.setItem(
+        'bf_legal_acceptance',
+        JSON.stringify({
+          ageConfirmed: true,
+          acceptTerms: true,
+          acceptPrivacy: true,
+          at: new Date().toISOString(),
+        }),
+      );
+    } catch {
+      // sessionStorage indisponible
+    }
     setMessage(
-      `Connexion ${provider} disponible à l’étape 09 (verifiers OAuth réels).`,
+      `Connexion ${provider} disponible à l’étape 09 (verifiers OAuth réels). Vos acceptations juridiques sont enregistrées pour la suite.`,
     );
   }
 
   return (
-    <main className="min-h-dvh bg-canvas px-4 py-8 flex justify-center">
-      <Stack maw={360} w="100%" gap="md">
-        <Group gap="sm" align="center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo/boulotflash.svg"
-            alt={tokens.copy.brand}
-            height={32}
-            style={{ height: 32, width: 'auto' }}
-          />
-        </Group>
-
-        <Title
-          order={1}
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '1.75rem',
-            color: tokens.color.brand.ink,
-          }}
-        >
+    <AuthPageShell
+      title={
+        <>
           Bienvenue sur{' '}
-          <span style={{ color: tokens.color.brand.flash }}>
+          <Text span inherit style={{ color: tokens.color.brand.flash }}>
             {tokens.copy.brand}
-          </span>
-        </Title>
-
-        <Text size="sm" c="dimmed">
-          Connectez-vous avec un compte existant. Pas de mot de passe public, pas
-          de code SMS.
-        </Text>
-
+          </Text>
+        </>
+      }
+      subtitle="Connectez-vous avec un compte existant. Pas de mot de passe public, pas de code SMS."
+    >
+      <Stack gap="md">
         <Stack gap="sm">
           {PROVIDERS.map((p) => (
             <Button
               key={p.id}
               variant="default"
-              size="md"
+              size="lg"
               fullWidth
               justify="flex-start"
+              radius="md"
+              disabled={!canContinue}
               leftSection={
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.src} alt="" width={22} height={22} />
@@ -103,6 +109,11 @@ export default function ConnexionPage() {
                 root: {
                   borderColor: tokens.color.border.subtle,
                   fontWeight: 600,
+                  minHeight: 48,
+                },
+                label: {
+                  whiteSpace: 'normal',
+                  textAlign: 'left',
                 },
               }}
             >
@@ -111,41 +122,73 @@ export default function ConnexionPage() {
           ))}
         </Stack>
 
-        <Checkbox
-          checked={ageOk}
-          onChange={(e) => setAgeOk(e.currentTarget.checked)}
-          label="J’ai au moins 18 ans et j’accepte les règles (projet, non validé)."
-          styles={{ label: { fontSize: '0.85rem' } }}
-        />
+        <Stack gap="sm">
+          <Checkbox
+            checked={ageOk}
+            onChange={(e) => setAgeOk(e.currentTarget.checked)}
+            label="J’ai au moins 18 ans."
+            styles={{
+              label: {
+                fontSize: 'var(--mantine-font-size-sm)',
+                lineHeight: 1.4,
+              },
+              body: { alignItems: 'flex-start' },
+            }}
+          />
+          <Checkbox
+            checked={legalOk}
+            onChange={(e) => setLegalOk(e.currentTarget.checked)}
+            label={
+              <Text size="sm" component="span">
+                J’accepte les{' '}
+                <Anchor
+                  component={Link}
+                  href="/conditions"
+                  target="_blank"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Conditions d’utilisation
+                </Anchor>{' '}
+                et la{' '}
+                <Anchor
+                  component={Link}
+                  href="/confidentialite"
+                  target="_blank"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Politique de confidentialité
+                </Anchor>
+                .
+              </Text>
+            }
+            styles={{
+              body: { alignItems: 'flex-start' },
+            }}
+          />
+        </Stack>
 
-        <Text size="xs" c="dimmed">
-          <Link href="/conditions" style={{ color: 'inherit' }}>
-            Conditions d’utilisation
-          </Link>
-          {' · '}
-          <Link href="/confidentialite" style={{ color: 'inherit' }}>
-            Politique de confidentialité
-          </Link>
-          {' '}
-          (projet, non validé)
-        </Text>
+        {!canContinue ? (
+          <Text size="xs" c="dimmed" ta="center">
+            Cochez les deux cases pour activer la connexion.
+          </Text>
+        ) : null}
 
         {error ? (
-          <Alert color="red" title="Connexion">
+          <Alert color="red" variant="light" title="Connexion" radius="md">
             {error}
           </Alert>
         ) : null}
         {message ? (
-          <Alert color="blue" title="Bientôt">
+          <Alert color="flash" variant="light" title="Bientôt" radius="md">
             {message}
           </Alert>
         ) : null}
 
-        <Text size="xs" c="dimmed">
+        <Text size="xs" c="dimmed" ta="center">
           Déconnexion disponible dans le profil. Les comptes admin ne passent pas
           par cet écran.
         </Text>
       </Stack>
-    </main>
+    </AuthPageShell>
   );
 }

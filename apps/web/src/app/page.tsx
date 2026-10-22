@@ -1,20 +1,16 @@
-import { Title, Text, Stack, Group, Badge } from '@mantine/core';
+'use client';
+
+import { Title, Text, Stack, Group, Badge, Container } from '@mantine/core';
 import { IconBolt } from '@tabler/icons-react';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { tokens, mantineStatusColors } from '@/theme/tokens';
 
 export default function HomePage() {
   return (
-    <main className="min-h-dvh bg-canvas px-5 py-10 md:px-8">
-      <Stack maw={640} mx="auto" gap="lg">
-        <Group gap="sm" align="center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/logo/boulotflash.svg"
-            alt={tokens.copy.brand}
-            height={40}
-            style={{ height: 40, width: 'auto' }}
-          />
-        </Group>
+    <main className="min-h-dvh bg-canvas">
+      <Container size={640} px={{ base: 'md', sm: 'xl' }} py={{ base: 'xl', md: 48 }}>
+      <Stack gap="lg">
+        <BrandLogo size="md" priority />
 
         <Title
           order={1}
@@ -54,6 +50,7 @@ export default function HomePage() {
           )}
         </Group>
       </Stack>
+      </Container>
     </main>
   );
 }

@@ -6,13 +6,15 @@ import {
   DEMO_ACTIVE_COMMUNES,
   FORBIDDEN_TERMS,
 } from './data';
+import { seedLegalDocuments } from './legal-docs';
 
 export type SeedReferentielOptions = {
   activateDemoCommunes?: boolean;
 };
 
 /**
- * Seed idempotent : ville, 24 communes, 26 catégories, platform_settings, forbidden_terms.
+ * Seed idempotent : ville, 24 communes, 26 catégories, platform_settings,
+ * forbidden_terms, documents juridiques TERMS/PRIVACY.
  */
 export async function seedReferentiel(
   prisma: PrismaClient,
@@ -104,4 +106,6 @@ export async function seedReferentiel(
       update: {},
     });
   }
+
+  await seedLegalDocuments(prisma);
 }

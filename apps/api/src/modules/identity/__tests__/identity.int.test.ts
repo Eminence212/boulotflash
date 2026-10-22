@@ -78,7 +78,12 @@ describeAuth('identity sessions (étape 08)', () => {
     }
 
     const session = await post('/auth/dev-session', {
-      body: { email: `jest-${Date.now()}@boulotflash.local` },
+      body: {
+        email: `jest-${Date.now()}@boulotflash.local`,
+        ageConfirmed: true,
+        acceptTerms: true,
+        acceptPrivacy: true,
+      },
     });
     expect([200, 201]).toContain(session.status);
     const accessToken = session.json.accessToken as string;

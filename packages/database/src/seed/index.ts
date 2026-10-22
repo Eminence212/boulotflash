@@ -4,6 +4,7 @@ import { seedReferentiel } from './referentiel';
 
 export { seedReferentiel } from './referentiel';
 export { seedDemoAccounts } from './demo-accounts';
+export { seedLegalDocuments, LEGAL_DOCS_VERSION } from './legal-docs';
 export {
   CATEGORIES,
   COMMUNE_NAMES,

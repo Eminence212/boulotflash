@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { LEGAL_DOCS_VERSION } from '@boulotflash/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from './jwt.service';
 import { maskEmail } from './mask';
@@ -119,6 +120,49 @@ export class SessionService {
     });
     this.logger.log(`dev-session user créé email=${maskEmail(user.email)}`);
     return { id: user.id, email: user.email };
+  }
+
+  /**
+   * Enregistre majorité + acceptation CONDITIONS et CONFIDENTIALITÉ (v0.1).
+   */
+  async recordLegalAcceptance(userId: string): Promise<void> {
+    const docs = await this.prisma.client.termsDocument.findMany({
+      where: {
+        version: LEGAL_DOCS_VERSION,
+        kind: { in: ['TERMS', 'PRIVACY'] },
+        publishedAt: { not: null },
+      },
+    });
+    if (docs.length < 2) {
+      throw new HttpException(
+        {
+          code: 'TERMS_MISSING',
+          message: 'Documents juridiques indisponibles. Relancez le seed.',
+        },
+        503,
+      );
+    }
+    const now = new Date();
+    await this.prisma.client.user.update({
+      where: { id: userId },
+      data: { ageConfirmedAt: now },
+    });
+    for (const doc of docs) {
+      await this.prisma.client.termsAcceptance.upsert({
+        where: {
+          userId_termsDocumentId: {
+            userId,
+            termsDocumentId: doc.id,
+          },
+        },
+        create: {
+          userId,
+          termsDocumentId: doc.id,
+          acceptedAt: now,
+        },
+        update: { acceptedAt: now },
+      });
+    }
   }
 
   async getUserForMe(userId: string) {

@@ -10,8 +10,8 @@ Chaque étape est un **document séparé**. Ne pas les fusionner.
 | API | [api.md](../api.md) |
 | Modèle | [modele-donnees.md](../modele-donnees.md) |
 | Recette | [recette.md](../recette.md) |
-| Conditions d’utilisation | [CONDITIONS_UTILISATION.md](../CONDITIONS_UTILISATION.md) (projet, non validé) |
-| Politique de confidentialité | [POLITIQUE_CONFIDENTIALITE.md](../POLITIQUE_CONFIDENTIALITE.md) (projet, non validé) |
+| Conditions d’utilisation | [CONDITIONS_UTILISATION.md](../CONDITIONS_UTILISATION.md) (v0.1, D24 validé 22 oct. 2026) |
+| Politique de confidentialité | [POLITIQUE_CONFIDENTIALITE.md](../POLITIQUE_CONFIDENTIALITE.md) (v0.1, D24 validé 22 oct. 2026) |
 
 ## Ordre (plan §9)
 

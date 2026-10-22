@@ -13,7 +13,7 @@ import {
   Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { AppAlert } from "@/components/feedback";
+import { AppNotification } from "@/components/feedback";
 import { tokens } from "@/theme/tokens";
 import { FacebookButton, GoogleButton, InstagramButton } from "./oauth-buttons";
 
@@ -159,13 +159,13 @@ export function AuthenticationForm({
         </Stack>
 
         {!canContinue && !busy ? (
-          <AppAlert
+          <AppNotification
             id={hintId}
             tone="info"
             title="Presque prêt"
           >
             Cochez les deux cases pour activer les boutons de connexion.
-          </AppAlert>
+          </AppNotification>
         ) : null}
 
         <Divider label="Continuer avec" labelPosition="center" />
@@ -240,14 +240,14 @@ export function AuthenticationForm({
         </Stack>
 
         {error ? (
-          <AppAlert tone="error" title="Connexion">
+          <AppNotification tone="error" title="Connexion">
             {error}
-          </AppAlert>
+          </AppNotification>
         ) : null}
         {message ? (
-          <AppAlert tone="info" title="Info">
+          <AppNotification tone="info" title="Info">
             {message}
-          </AppAlert>
+          </AppNotification>
         ) : null}
       </Stack>
     </Paper>

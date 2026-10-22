@@ -85,10 +85,43 @@ describe('validateEnv', () => {
       baseEnv({
         APP_ENV: 'production',
         ENABLE_TEST_HOOKS: 'false',
+        SEED_DEMO: 'false',
+        TOTP_ADAPTER: 'live',
+        TOTP_ENCRYPTION_KEY: Buffer.alloc(32, 3).toString('base64'),
         JWT_SECRET: 'boulotflash-jwt-dev-only-not-for-prod',
       }),
     );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.code).toBe('JWT_SECRET_WEAK');
+  });
+
+  it('refuse TOTP_ADAPTER=fixed en production', () => {
+    const result = validateEnv(
+      baseEnv({
+        APP_ENV: 'production',
+        ENABLE_TEST_HOOKS: 'false',
+        SEED_DEMO: 'false',
+        TOTP_ADAPTER: 'fixed',
+        TOTP_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
+        JWT_SECRET: 'production-grade-jwt-secret-at-least-32-chars',
+      }),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe('TOTP_ADAPTER_FIXED_IN_PRODUCTION');
+  });
+
+  it('refuse TOTP_ENCRYPTION_KEY placeholder en production', () => {
+    const result = validateEnv(
+      baseEnv({
+        APP_ENV: 'production',
+        ENABLE_TEST_HOOKS: 'false',
+        SEED_DEMO: 'false',
+        TOTP_ADAPTER: 'live',
+        TOTP_ENCRYPTION_KEY: 'replace-me-totp-key',
+        JWT_SECRET: 'production-grade-jwt-secret-at-least-32-chars',
+      }),
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe('TOTP_ENCRYPTION_KEY_MISSING');
   });
 });

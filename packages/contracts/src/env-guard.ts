@@ -94,6 +94,15 @@ export function validateEnv(env: NodeJS.ProcessEnv = process.env): EnvGuardResul
     };
   }
 
+  const totpAdapter = (env.TOTP_ADAPTER ?? '').trim().toLowerCase();
+  if (totpAdapter && totpAdapter !== 'fixed' && totpAdapter !== 'live') {
+    return {
+      ok: false,
+      code: 'TOTP_ADAPTER_INVALID',
+      message: 'TOTP_ADAPTER doit être fixed ou live (ou absent).',
+    };
+  }
+
   const appEnv = (env.APP_ENV ?? 'development').trim().toLowerCase();
   if (appEnv === 'production') {
     if (isTruthy(env.ENABLE_TEST_HOOKS)) {
@@ -108,6 +117,34 @@ export function validateEnv(env: NodeJS.ProcessEnv = process.env): EnvGuardResul
         ok: false,
         code: 'SEED_DEMO_IN_PRODUCTION',
         message: 'SEED_DEMO est interdit quand APP_ENV=production.',
+      };
+    }
+    if (totpAdapter === 'fixed') {
+      return {
+        ok: false,
+        code: 'TOTP_ADAPTER_FIXED_IN_PRODUCTION',
+        message:
+          'TOTP_ADAPTER=fixed est interdit quand APP_ENV=production (D18).',
+      };
+    }
+    if (isPlaceholder(env.TOTP_ENCRYPTION_KEY)) {
+      return {
+        ok: false,
+        code: 'TOTP_ENCRYPTION_KEY_MISSING',
+        message:
+          'TOTP_ENCRYPTION_KEY manquante ou placeholder (32 octets base64) en production.',
+      };
+    }
+    const totpKey = Buffer.from(
+      (env.TOTP_ENCRYPTION_KEY ?? '').trim(),
+      'base64',
+    );
+    if (totpKey.length !== 32) {
+      return {
+        ok: false,
+        code: 'TOTP_ENCRYPTION_KEY_INVALID',
+        message:
+          'TOTP_ENCRYPTION_KEY doit décoder en exactement 32 octets (AES-256).',
       };
     }
     const jwt = (env.JWT_SECRET ?? '').trim().toLowerCase();

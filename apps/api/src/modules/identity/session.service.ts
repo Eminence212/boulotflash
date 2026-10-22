@@ -70,7 +70,12 @@ export class SessionService {
     const existing = await this.prisma.client.refreshToken.findFirst({
       where: { tokenHash },
     });
-    if (!existing || existing.revokedAt || existing.expiresAt < new Date()) {
+    if (
+      !existing ||
+      existing.revokedAt ||
+      existing.expiresAt < new Date() ||
+      existing.userAgent === 'admin-session'
+    ) {
       throw new HttpException({ code: 'UNAUTHORIZED', message: 'Refresh invalide.' }, 401);
     }
 

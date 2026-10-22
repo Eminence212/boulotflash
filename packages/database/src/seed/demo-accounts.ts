@@ -1,17 +1,16 @@
 import { createHash } from 'node:crypto';
 import * as argon2 from 'argon2';
-import type { PrismaClient } from '@prisma/client';
+import type { AuthProvider, PrismaClient } from '@prisma/client';
+import {
+  encodeTotpSecretForStorage,
+  isTotpAdapterFixed,
+} from '../totp-crypto';
 import {
   ADMIN_PASSWORD,
   CLOSED_PHONE_C_FERME,
   RECOVERY_CODE_TEST,
   TOTP_TEST_SECRET,
 } from './data';
-
-function isTruthy(value: string | undefined): boolean {
-  if (!value) return false;
-  return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
-}
 
 function sha256Hex(value: string): string {
   return createHash('sha256').update(value, 'utf8').digest('hex');
@@ -46,7 +45,7 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
     phone?: string | null;
     displayName: string;
     status?: 'ACTIVE' | 'INCOMPLETE' | 'SUSPENDED' | 'CLOSED';
-    provider: 'google' | 'facebook' | 'instagram';
+    provider: AuthProvider;
     providerUserId: string;
   }) {
     const existingIdentity = await prisma.authIdentity.findFirst({
@@ -66,6 +65,43 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
         },
       });
     }
+
+    // Idempotence si le téléphone / e-mail existe déjà (re-seed, OAuth partiel).
+    const existingUser =
+      (input.phone
+        ? await prisma.user.findFirst({ where: { phone: input.phone } })
+        : null) ??
+      (input.email
+        ? await prisma.user.findFirst({ where: { email: input.email } })
+        : null);
+
+    if (existingUser) {
+      await prisma.authIdentity.upsert({
+        where: {
+          provider_providerUserId: {
+            provider: input.provider,
+            providerUserId: input.providerUserId,
+          },
+        },
+        create: {
+          userId: existingUser.id,
+          provider: input.provider,
+          providerUserId: input.providerUserId,
+        },
+        update: {},
+      });
+      return prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          email: input.email ?? undefined,
+          phone: input.phone ?? undefined,
+          displayName: input.displayName,
+          status: input.status ?? 'ACTIVE',
+          phoneConfirmedAt: input.phone ? new Date() : undefined,
+        },
+      });
+    }
+
     return prisma.user.create({
       data: {
         email: input.email ?? null,
@@ -406,12 +442,8 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
       });
     }
 
-    if (isTruthy(process.env.TOTP_ADAPTER) && process.env.TOTP_ADAPTER === 'fixed') {
-      // Secret Base32 de test chiffré de façon triviale (pas de clair en base).
-      // Remplacé par un vrai KMS à l’étape admin TOTP.
-      const secretEncrypted = Buffer.from(`seed-fixed:${TOTP_TEST_SECRET}`, 'utf8').toString(
-        'base64',
-      );
+    if (isTotpAdapterFixed()) {
+      const secretEncrypted = encodeTotpSecretForStorage(TOTP_TEST_SECRET);
       await prisma.adminTotpSecret.upsert({
         where: { userId: user.id },
         create: {
@@ -434,6 +466,50 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
       console.info(
         `[seed] TOTP admin ${admin.username} ignoré (définir TOTP_ADAPTER=fixed pour le secret de test)`,
       );
+    }
+  }
+
+  // Offre minimale J-PUB-1 pour la recette admin (10-F) — offre complète = étape 12.
+  const catService = await prisma.category.findFirst({
+    where: { slug: 'service-plonge-et-cuisine' },
+  });
+  if (catService) {
+    const r2Identity = await prisma.authIdentity.findFirst({
+      where: { provider: 'facebook', providerUserId: 'fb-sub-r2' },
+    });
+    if (r2Identity) {
+      const existingJob = await prisma.job.findFirst({
+        where: { title: { startsWith: 'J-PUB-1' } },
+      });
+      if (!existingJob) {
+        const startAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        const applyDeadline = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+        const selectionDeadline = new Date(Date.now() + 6 * 24 * 60 * 60 * 1000);
+        await prisma.job.create({
+          data: {
+            employerId: r2Identity.userId,
+            title: 'J-PUB-1 — Service près du marché',
+            description:
+              'Offre démo pour recette admin (suspension). Parcours nominal Gombe.',
+            categoryId: catService.id,
+            communeId: gombe.id,
+            publicLandmark: 'près du marché',
+            addressPrivate: '10 avenue de test, Gombe',
+            startAt,
+            durationHours: 4,
+            workersNeeded: 2,
+            amount: 1500,
+            currency: 'USD',
+            payUnit: 'MISSION',
+            payChannel: 'CASH',
+            payTiming: 'fin de mission',
+            applyDeadline,
+            selectionDeadline,
+            status: 'PUBLISHED',
+            publishedAt: new Date(),
+          },
+        });
+      }
     }
   }
 }

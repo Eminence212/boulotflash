@@ -11,6 +11,9 @@ async function bootstrap() {
   try {
     // Référentiel au démarrage ; comptes démo seulement si SEED_DEMO déjà dans l’env.
     await runSeed(prisma, { allowDemoAccounts: true });
+  } catch (err) {
+    // Ne bloque pas le démarrage API si le re-seed démo échoue (idempotence partielle).
+    console.error('[seed] échec non bloquant :', err);
   } finally {
     await prisma.$disconnect();
   }

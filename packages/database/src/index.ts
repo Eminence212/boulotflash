@@ -13,6 +13,20 @@ export {
   FORBIDDEN_TERMS,
   CITY_NAME,
 } from './seed/index';
+export {
+  base32Decode,
+  base32Encode,
+  decryptTotpSecret,
+  encodeTotpSecretForStorage,
+  encryptTotpSecret,
+  generateRecoveryCodes,
+  generateTotpCode,
+  generateTotpSecret,
+  isTotpAdapterFixed,
+  loadTotpEncryptionKey,
+  verifyTotpCode,
+  TOTP_TEST_SECRET_DEFAULT,
+} from './totp-crypto';
 
 /**
  * Ping Postgres pour /health (étape 04).

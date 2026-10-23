@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpException,
+  Logger,
   Post,
   Req,
   Res,
@@ -53,6 +54,8 @@ type LinkBody = OauthCredentialInput & {
 
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly sessions: SessionService,
     private readonly rateLimit: OauthRateLimitService,
@@ -163,13 +166,13 @@ export class AuthController {
     return this.handleOauthLogin('facebook', req, res, body);
   }
 
-  @Post('oauth/instagram')
-  oauthInstagram(
+  @Post('oauth/github')
+  oauthGitHub(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
     @Body() body: OauthBody,
   ) {
-    return this.handleOauthLogin('instagram', req, res, body);
+    return this.handleOauthLogin('github', req, res, body);
   }
 
   @Post('oauth/link')
@@ -183,10 +186,10 @@ export class AuthController {
     if (
       provider !== 'google' &&
       provider !== 'facebook' &&
-      provider !== 'instagram'
+      provider !== 'github'
     ) {
       throw new HttpException(
-        { code: 'VALIDATION', message: 'provider requis (google|facebook|instagram).' },
+        { code: 'VALIDATION', message: 'provider requis (google|facebook|github).' },
         400,
       );
     }
@@ -211,21 +214,54 @@ export class AuthController {
     this.assertLegalAcceptance(body);
     this.assertNoDemo(body);
 
-    const profile = await this.verifier.verify(provider, body ?? {});
-    const { userId } = await this.accounts.resolveLogin(profile);
-    await this.sessions.recordLegalAcceptance(userId);
-    const pair = await this.sessions.issueSession(
-      userId,
-      req.headers['user-agent'],
-    );
-    setRefreshCookie(res, pair.refreshToken, pair.refreshMaxAgeSec);
-    const me = await this.sessions.getUserForMe(userId);
-    return {
-      accessToken: pair.accessToken,
-      expiresIn: pair.expiresIn,
-      userId: pair.userId,
-      needsProfileCompletion: me.needsProfileCompletion,
-    };
+    try {
+      const profile = await this.verifier.verify(provider, body ?? {});
+      const { userId } = await this.accounts.resolveLogin(profile);
+      await this.sessions.recordLegalAcceptance(userId);
+      const pair = await this.sessions.issueSession(
+        userId,
+        req.headers['user-agent'],
+      );
+      setRefreshCookie(res, pair.refreshToken, pair.refreshMaxAgeSec);
+      const me = await this.sessions.getUserForMe(userId);
+      return {
+        accessToken: pair.accessToken,
+        expiresIn: pair.expiresIn,
+        userId: pair.userId,
+        needsProfileCompletion: me.needsProfileCompletion,
+      };
+    } catch (err) {
+      if (err instanceof HttpException) throw err;
+      const cause =
+        err instanceof Error && err.cause instanceof Error
+          ? err.cause
+          : undefined;
+      const detail = [
+        err instanceof Error ? err.message : String(err),
+        cause?.message,
+        cause && 'code' in cause ? String((cause as { code?: string }).code) : null,
+      ]
+        .filter(Boolean)
+        .join(' | ');
+      this.logger.error(
+        `OAuth ${provider} échoué: ${detail}`,
+        err instanceof Error ? err.stack : undefined,
+      );
+
+      const networkFailure =
+        /fetch failed|ConnectTimeoutError|UND_ERR_CONNECT|ENOTFOUND|ECONNREFUSED|ETIMEDOUT/i.test(
+          detail,
+        );
+      throw new HttpException(
+        {
+          code: networkFailure ? 'OAUTH_NETWORK' : 'OAUTH_FAILED',
+          message: networkFailure
+            ? 'Impossible de joindre le fournisseur OAuth depuis le serveur. Vérifiez la connexion Internet / VPN / pare-feu, puis réessayez.'
+            : 'Connexion impossible pour le moment. Réessayez.',
+        },
+        networkFailure ? 503 : 500,
+      );
+    }
   }
 
   private assertLegalAcceptance(body: {

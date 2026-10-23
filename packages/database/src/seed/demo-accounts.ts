@@ -142,7 +142,7 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
     create: { userId: cComplet.id, role: 'WORKER' },
     update: {},
   });
-  await prisma.workerProfile.upsert({
+  const cCompletProfile = await prisma.workerProfile.upsert({
     where: { userId: cComplet.id },
     create: {
       userId: cComplet.id,
@@ -156,6 +156,29 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
       communeId: lemba.id,
       mainCategoryId: catVente.id,
       isAvailable: true,
+    },
+  });
+  await prisma.workerSkill.upsert({
+    where: {
+      workerProfileId_categoryId: {
+        workerProfileId: cCompletProfile.id,
+        categoryId: catVente.id,
+      },
+    },
+    create: {
+      workerProfileId: cCompletProfile.id,
+      categoryId: catVente.id,
+    },
+    update: {},
+  });
+  await prisma.workerAvailability.deleteMany({
+    where: { workerProfileId: cCompletProfile.id },
+  });
+  await prisma.workerAvailability.create({
+    data: {
+      workerProfileId: cCompletProfile.id,
+      weekday: 1,
+      slot: 'MORNING',
     },
   });
 
@@ -207,8 +230,8 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
     code: 'C-B',
     phone: '+243810000004',
     displayName: 'Sarah',
-    provider: 'instagram',
-    providerUserId: 'ig-sub-b',
+    provider: 'github',
+    providerUserId: 'gh-sub-b',
   });
   await prisma.workerProfile.upsert({
     where: { userId: cB.id },
@@ -383,7 +406,7 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
     communeId: ngaliema.id,
     type: 'BUSINESS',
   });
-  await upsertEmployer({
+  const rDual = await upsertEmployer({
     code: 'R-DUAL',
     phone: '+243830000001',
     displayName: 'Dual',
@@ -392,6 +415,41 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
     communeId: gombe.id,
     type: 'INDIVIDUAL',
     alsoWorker: true,
+  });
+  await prisma.userRole.upsert({
+    where: { userId_role: { userId: rDual.id, role: 'WORKER' } },
+    create: { userId: rDual.id, role: 'WORKER' },
+    update: {},
+  });
+  const rDualWorker = await prisma.workerProfile.upsert({
+    where: { userId: rDual.id },
+    create: {
+      userId: rDual.id,
+      displayName: 'Dual',
+      communeId: gombe.id,
+      mainCategoryId: catVente.id,
+      isAvailable: true,
+      termsAcceptedAt: new Date(),
+    },
+    update: {
+      communeId: gombe.id,
+      mainCategoryId: catVente.id,
+      isAvailable: true,
+    },
+  });
+  await prisma.workerAvailability.deleteMany({
+    where: { workerProfileId: rDualWorker.id },
+  });
+  await prisma.workerAvailability.create({
+    data: {
+      workerProfileId: rDualWorker.id,
+      weekday: 2,
+      slot: 'AFTERNOON',
+    },
+  });
+  await prisma.user.update({
+    where: { id: rDual.id },
+    data: { activeMode: 'EMPLOYER' },
   });
   await upsertEmployer({
     code: 'R-SUSPENDU',

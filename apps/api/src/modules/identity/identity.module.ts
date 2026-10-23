@@ -19,6 +19,7 @@ import { MeController } from './me.controller';
 import { OauthRateLimitService } from './oauth-rate-limit.service';
 import { OauthTokenVerifierService } from './oauth-token-verifier.service';
 import { PhoneRequiredGuard } from './phone-required.guard';
+import { ProfileService } from './profile.service';
 import { SessionService } from './session.service';
 import { TokenBlacklistService } from './token-blacklist.service';
 
@@ -35,6 +36,7 @@ import { TokenBlacklistService } from './token-blacklist.service';
   ],
   providers: [
     JwtService,
+    ProfileService,
     SessionService,
     OauthRateLimitService,
     TokenBlacklistService,
@@ -52,6 +54,8 @@ import { TokenBlacklistService } from './token-blacklist.service';
   exports: [
     JwtService,
     SessionService,
+    ProfileService,
+    TokenBlacklistService,
     AuthGuard,
     PhoneRequiredGuard,
     AccountResolverService,

@@ -34,7 +34,7 @@ enum AdminScope {
 enum AuthProvider {
   google
   facebook
-  instagram
+  github
 }
 
 enum EmployerType {

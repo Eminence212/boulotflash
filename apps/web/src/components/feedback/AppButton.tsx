@@ -3,7 +3,7 @@
 import { Button, type ButtonProps } from '@mantine/core';
 
 export type AppButtonProps = ButtonProps &
-  React.ComponentPropsWithoutRef<'button'>;
+  Omit<React.ComponentPropsWithoutRef<'button'>, keyof ButtonProps>;
 
 /**
  * Bouton réutilisable — loader Mantine `dots` dès que `loading` est vrai.

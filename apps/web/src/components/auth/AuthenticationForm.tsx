@@ -15,9 +15,9 @@ import {
 import { useForm } from "@mantine/form";
 import { AppAlert } from "@/components/feedback";
 import { tokens } from "@/theme/tokens";
-import { FacebookButton, GoogleButton, InstagramButton } from "./oauth-buttons";
+import { FacebookButton, GoogleButton, GitHubButton } from "./oauth-buttons";
 
-export type AuthProvider = "google" | "facebook" | "instagram";
+export type AuthProvider = "google" | "facebook" | "github";
 
 type AuthenticationFormProps = PaperProps & {
   onProvider: (provider: AuthProvider) => void;
@@ -89,7 +89,7 @@ export function AuthenticationForm({
             Connexion
           </Title>
           <Text size="sm" c="dimmed" style={{ lineHeight: 1.5 }}>
-            Missions courtes — un compte Google, Facebook ou Instagram suffit.
+            Missions courtes — un compte Google, Facebook ou GitHub suffit.
             Pas de mot de passe ni de code SMS.
           </Text>
         </Stack>
@@ -171,7 +171,7 @@ export function AuthenticationForm({
             [
               ["google", GoogleButton, "Google"],
               ["facebook", FacebookButton, "Facebook"],
-              ["instagram", InstagramButton, "Instagram"],
+              ["github", GitHubButton, "GitHub"],
             ] as const
           ).map(([id, Btn, label]) => {
             const isLoading = loadingProvider === id;
@@ -215,6 +215,18 @@ export function AuthenticationForm({
             {message}
           </AppAlert>
         ) : null}
+
+        <Text ta="center" size="sm" c="dimmed">
+          <Anchor
+            component={Link}
+            href="/"
+            size="sm"
+            fw={600}
+            underline="hover"
+          >
+            Continuer en invité
+          </Anchor>
+        </Text>
       </Stack>
     </Paper>
   );

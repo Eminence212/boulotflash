@@ -21,7 +21,7 @@
 | --- | --- | --- |
 | Continuer avec Google | [`../brand/oauth/google.svg`](../brand/oauth/google.svg) | « G » multicolore officiel |
 | Continuer avec Facebook | [`../brand/oauth/facebook.svg`](../brand/oauth/facebook.svg) | « f » `#1877F2` |
-| Continuer avec Instagram | [`../brand/oauth/instagram.svg`](../brand/oauth/instagram.svg) | glyphe dégradé Meta |
+| Continuer avec GitHub | [`../brand/oauth/github.svg`](../brand/oauth/github.svg) | mark Octocat `#181717` |
 
 Règles UI : logo 20–24 px à gauche, libellé centré ou à droite du logo, fond blanc, bordure soft, hauteur ≥ 44 px. Le logo BoulotFlash n’est jamais le CTA.
 

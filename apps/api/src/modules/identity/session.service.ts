@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from './jwt.service';
 import { maskEmail } from './mask';
 import { isPilotPhone, normalizePilotPhone } from './phone';
+import { ProfileService } from './profile.service';
 
 export type SessionPair = {
   accessToken: string;
@@ -26,6 +27,7 @@ export class SessionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
+    private readonly profiles: ProfileService,
   ) {
     this.refreshTtlSec = Number(process.env.JWT_REFRESH_TTL ?? 2_592_000);
   }
@@ -185,6 +187,10 @@ export class SessionService {
         ageConfirmedAt: true,
         activeMode: true,
         createdAt: true,
+        roles: { select: { role: true } },
+        subscription: {
+          select: { status: true, endsAt: true, startedAt: true },
+        },
         authIdentities: {
           select: { provider: true, providerUserId: true, createdAt: true },
         },
@@ -193,14 +199,85 @@ export class SessionService {
     if (!user) {
       throw new HttpException({ code: 'UNAUTHORIZED', message: 'Session invalide.' }, 401);
     }
-    const missing = {
+
+    const [workerProfile, employerProfile] = await Promise.all([
+      this.profiles.getWorkerProfileView(userId),
+      this.profiles.getEmployerProfileView(userId),
+    ]);
+    const worker = this.profiles.workerCompleteness(
+      workerProfile
+        ? {
+            displayName: workerProfile.displayName,
+            communeId: workerProfile.communeId,
+            mainCategoryId: workerProfile.mainCategoryId,
+            availability: workerProfile.availability,
+          }
+        : null,
+    );
+
+    const roles = user.roles.map((r) => r.role);
+    const hasWorker = !!workerProfile;
+    const hasEmployer = !!employerProfile;
+    const missingBase = {
       phone: !user.phone,
       displayName: !user.displayName,
     };
+    const gaps: string[] = [];
+    if (missingBase.phone) gaps.push('Téléphone');
+    if (missingBase.displayName) gaps.push('Nom');
+    if (hasWorker || roles.includes('WORKER')) {
+      gaps.push(...worker.gaps.filter((g) => !gaps.includes(g)));
+    }
+
+    let activeMode = user.activeMode;
+    if (!activeMode) {
+      if (hasEmployer && !hasWorker) activeMode = 'EMPLOYER';
+      else if (hasWorker) activeMode = 'WORKER';
+    }
+
     return {
-      ...user,
-      missing,
-      needsProfileCompletion: missing.phone || missing.displayName,
+      id: user.id,
+      email: user.email,
+      phone: user.phone,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      status: user.status,
+      phoneConfirmedAt: user.phoneConfirmedAt,
+      ageConfirmedAt: user.ageConfirmedAt,
+      activeMode,
+      createdAt: user.createdAt,
+      authIdentities: user.authIdentities,
+      roles,
+      modesAvailable: {
+        worker: hasWorker,
+        employer: hasEmployer,
+        canSwitch: hasWorker && hasEmployer,
+      },
+      workerProfile,
+      employerProfile,
+      subscription: user.subscription
+        ? {
+            status: user.subscription.status,
+            endsAt: user.subscription.endsAt,
+            startedAt: user.subscription.startedAt,
+            label:
+              user.subscription.status === 'ACTIVE'
+                ? 'Services gratuits'
+                : user.subscription.status === 'EXPIRED'
+                  ? 'Abonnement expiré'
+                  : 'Abonnement suspendu',
+          }
+        : null,
+      missing: {
+        ...missingBase,
+        workerCommune: worker.flags.commune,
+        workerCategory: worker.flags.category,
+        workerAvailability: worker.flags.availability,
+      },
+      gaps,
+      workerProfileComplete: worker.complete,
+      needsProfileCompletion: missingBase.phone || missingBase.displayName,
+      phoneBadge: !!user.phone,
     };
   }
 

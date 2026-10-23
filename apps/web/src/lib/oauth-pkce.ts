@@ -1,4 +1,4 @@
-export type AuthProvider = 'google' | 'facebook' | 'instagram';
+export type AuthProvider = 'google' | 'facebook' | 'github';
 
 const PKCE_KEY = 'bf_oauth_pkce';
 
@@ -74,7 +74,7 @@ export type OauthPublicConfig = {
     authUrl: string;
     scopes: string;
   };
-  instagram: {
+  github: {
     clientId: string;
     redirectUri: string;
     authUrl: string;
@@ -106,8 +106,10 @@ export function buildAuthorizeUrl(
     url.searchParams.set('code_challenge', opts.codeChallenge);
     url.searchParams.set('code_challenge_method', 'S256');
   } else {
+    // GitHub OAuth App — PKCE
     url.searchParams.set('scope', entry.scopes);
-    url.searchParams.set('enable_fb_login', '0');
+    url.searchParams.set('code_challenge', opts.codeChallenge);
+    url.searchParams.set('code_challenge_method', 'S256');
   }
 
   return url.toString();

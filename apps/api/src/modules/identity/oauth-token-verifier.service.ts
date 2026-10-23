@@ -24,8 +24,8 @@ export class OauthTokenVerifierService {
         return this.verifyGoogle(input);
       case 'facebook':
         return this.verifyFacebook(input);
-      case 'instagram':
-        return this.verifyInstagram(input);
+      case 'github':
+        return this.verifyGitHub(input);
       default:
         throw new HttpException(
           { code: 'VALIDATION', message: 'Provider inconnu.' },
@@ -48,11 +48,11 @@ export class OauthTokenVerifierService {
         authUrl: 'https://www.facebook.com/v21.0/dialog/oauth',
         scopes: 'public_profile,email',
       },
-      instagram: {
-        clientId: required('META_APP_ID'),
-        redirectUri: required('INSTAGRAM_REDIRECT_URI'),
-        authUrl: 'https://www.instagram.com/oauth/authorize',
-        scopes: 'instagram_business_basic',
+      github: {
+        clientId: required('GITHUB_CLIENT_ID'),
+        redirectUri: required('GITHUB_REDIRECT_URI'),
+        authUrl: 'https://github.com/login/oauth/authorize',
+        scopes: 'read:user user:email',
       },
     };
   }
@@ -213,52 +213,79 @@ export class OauthTokenVerifierService {
     };
   }
 
-  private async verifyInstagram(
+  private async verifyGitHub(
     input: OauthCredentialInput,
   ): Promise<VerifiedOauthProfile> {
     let accessToken = input.accessToken?.trim();
-    let userIdFromToken: string | null = null;
-
     if (!accessToken && input.code?.trim()) {
-      const exchanged = await this.exchangeInstagramCode(input.code.trim());
-      accessToken = exchanged.accessToken;
-      userIdFromToken = exchanged.userId;
+      accessToken = await this.exchangeGithubCode(
+        input.code.trim(),
+        input.codeVerifier?.trim(),
+      );
     }
     if (!accessToken) {
-      throw unauthorized('Code ou accessToken Instagram requis.');
+      throw unauthorized('Code ou accessToken GitHub requis.');
     }
 
-    const url = new URL('https://graph.instagram.com/v21.0/me');
-    url.searchParams.set(
-      'fields',
-      'user_id,username,name,account_type,profile_picture_url',
-    );
-    url.searchParams.set('access_token', accessToken);
-    const res = await fetch(url);
+    const headers = {
+      authorization: `Bearer ${accessToken}`,
+      accept: 'application/vnd.github+json',
+      'user-agent': 'BoulotFlash',
+      'x-github-api-version': '2022-11-28',
+    };
+
+    const res = await fetch('https://api.github.com/user', { headers });
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     if (!res.ok) {
-      this.logger.warn(`Instagram /me HTTP ${res.status}`);
-      throw unauthorized('Profil Instagram inaccessible.');
+      this.logger.warn(`GitHub /user HTTP ${res.status}`);
+      throw unauthorized('Profil GitHub inaccessible.');
     }
 
     const providerUserId =
-      asString(data.user_id) ?? asString(data.id) ?? userIdFromToken;
+      data.id != null ? String(data.id) : asString(data.node_id);
     if (!providerUserId) {
-      throw unauthorized('Profil Instagram sans identifiant.');
+      throw unauthorized('Profil GitHub sans identifiant.');
     }
 
-    const displayName =
-      asString(data.name) ?? asString(data.username) ?? null;
+    const emailFromProfile = asString(data.email)?.toLowerCase() ?? null;
+    const emailInfo = await this.resolveGithubEmail(headers, emailFromProfile);
 
     return {
-      provider: 'instagram',
+      provider: 'github',
       providerUserId,
-      email: null,
-      emailVerified: false,
-      displayName,
-      avatarUrl: asString(data.profile_picture_url) ?? null,
+      email: emailInfo.email,
+      emailVerified: emailInfo.verified,
+      displayName: asString(data.name) ?? asString(data.login) ?? null,
+      avatarUrl: asString(data.avatar_url) ?? null,
       phoneE164: null,
     };
+  }
+
+  private async resolveGithubEmail(
+    headers: Record<string, string>,
+    fallback: string | null,
+  ): Promise<{ email: string | null; verified: boolean }> {
+    try {
+      const res = await fetch('https://api.github.com/user/emails', { headers });
+      if (!res.ok) return { email: fallback, verified: !!fallback };
+      const list = (await res.json().catch(() => [])) as Array<{
+        email?: string;
+        primary?: boolean;
+        verified?: boolean;
+      }>;
+      if (!Array.isArray(list) || list.length === 0) {
+        return { email: fallback, verified: !!fallback };
+      }
+      const primary =
+        list.find((e) => e.primary && e.verified) ??
+        list.find((e) => e.verified) ??
+        list.find((e) => e.primary) ??
+        list[0];
+      const email = asString(primary?.email)?.toLowerCase() ?? fallback;
+      return { email, verified: primary?.verified === true && !!email };
+    } catch {
+      return { email: fallback, verified: !!fallback };
+    }
   }
 
   private async exchangeMetaCode(
@@ -282,45 +309,34 @@ export class OauthTokenVerifierService {
     return json.access_token;
   }
 
-  private async exchangeInstagramCode(
+  private async exchangeGithubCode(
     code: string,
-  ): Promise<{ accessToken: string; userId: string | null }> {
-    const body = new URLSearchParams({
-      client_id: required('META_APP_ID'),
-      client_secret: required('META_APP_SECRET'),
-      grant_type: 'authorization_code',
-      redirect_uri: required('INSTAGRAM_REDIRECT_URI'),
+    codeVerifier?: string,
+  ): Promise<string> {
+    const body: Record<string, string> = {
+      client_id: required('GITHUB_CLIENT_ID'),
+      client_secret: required('GITHUB_CLIENT_SECRET'),
       code,
-    });
-    const res = await fetch('https://api.instagram.com/oauth/access_token', {
+      redirect_uri: required('GITHUB_REDIRECT_URI'),
+    };
+    if (codeVerifier) body.code_verifier = codeVerifier;
+
+    const res = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body,
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(body),
     });
     const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-    if (!res.ok) {
-      this.logger.warn(`Instagram token exchange HTTP ${res.status}`);
-      throw unauthorized('Échange code Instagram refusé.');
+    if (!res.ok || typeof json.access_token !== 'string') {
+      this.logger.warn(
+        `GitHub token exchange HTTP ${res.status} error=${String(json.error ?? '')}`,
+      );
+      throw unauthorized('Échange code GitHub refusé.');
     }
-    const accessToken =
-      typeof json.access_token === 'string'
-        ? json.access_token
-        : Array.isArray(json.data) &&
-            typeof (json.data[0] as { access_token?: string })?.access_token ===
-              'string'
-          ? (json.data[0] as { access_token: string }).access_token
-          : null;
-    const userId =
-      typeof json.user_id === 'number' || typeof json.user_id === 'string'
-        ? String(json.user_id)
-        : Array.isArray(json.data) &&
-            (json.data[0] as { user_id?: string | number })?.user_id != null
-          ? String((json.data[0] as { user_id: string | number }).user_id)
-          : null;
-    if (!accessToken) {
-      throw unauthorized('Réponse Instagram sans access_token.');
-    }
-    return { accessToken, userId };
+    return json.access_token;
   }
 }
 

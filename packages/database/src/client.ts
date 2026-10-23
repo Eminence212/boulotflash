@@ -2,7 +2,11 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
 
-export type { PrismaClient } from '@prisma/client';
+export type {
+  AvailabilitySlot,
+  EmployerType,
+  PrismaClient,
+} from '@prisma/client';
 
 /**
  * Prisma 7 + adapter-pg (URL hors schema.prisma).

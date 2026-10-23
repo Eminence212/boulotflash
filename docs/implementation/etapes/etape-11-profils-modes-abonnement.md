@@ -62,23 +62,41 @@ Jest : transaction profil + abonnement, idempotence, refus si abonnement `EXPIRE
 L’étape n’est **close** que si tous les points ci-dessous sont cochés. Exécuter les tests manuels du tableau **dans l’ordre**, noter OK/KO et l’anomalie éventuelle. Ne pas ouvrir l’étape suivante sans cette recette. Références : [CDC.md](../../CDC.md), [PLAN §9](../../PLAN_IMPLEMENTATION_BOULOTFLASH.md).
 
 **Tests manuels (obligatoires)**
-- [ ] `11-A` — Profil candidat
-- [ ] `11-B` — Profil complet
-- [ ] `11-C` — Désactiver la disponibilité
-- [ ] `11-D` — Abonnement à la création
-- [ ] `11-E` — Deux modes
-- [ ] `11-F` — Abonnement expiré
-- [ ] `11-G` — Compte suspendu
-- [ ] `11-H` — Double clic création recruteur
+- [x] `11-A` — Profil candidat
+- [x] `11-B` — Profil complet
+- [x] `11-C` — Désactiver la disponibilité
+- [x] `11-D` — Abonnement à la création
+- [x] `11-E` — Deux modes
+- [x] `11-F` — Abonnement expiré
+- [x] `11-G` — Compte suspendu
+- [x] `11-H` — Double clic création recruteur
 
 **Livrables et règles**
-- [ ] Abonnement créé actif et gratuit.
-- [ ] Candidat jamais envoyé vers un paiement.
-- [ ] Modes distincts sur un même compte.
-- [ ] Tests automatisés exécutés avec succès : Jest : transaction profil+abonnement, idempotence, refus abo inactif.
-- [ ] Compte rendu de recette fourni (IDs manuels OK/KO + anomalies).
+- [x] Abonnement créé actif et gratuit.
+- [x] Candidat jamais envoyé vers un paiement.
+- [x] Modes distincts sur un même compte.
+- [x] Tests automatisés exécutés avec succès : Jest : transaction profil+abonnement, idempotence, refus abo inactif.
+- [x] Compte rendu de recette fourni (IDs manuels OK/KO + anomalies).
 
 Anomalie bloquante : publication possible avec abonnement expiré, ou second abonnement.
+
+---
+
+## Compte rendu de recette (22 oct. 2026)
+
+| ID | OK/KO | Preuve |
+| --- | --- | --- |
+| 11-A | OK | `C-INCOMPLET` : `gaps=["Commune","Compétence principale","Disponibilités"]` ; `GET /jobs` 200 ; `POST /jobs/{J-PUB-1}/applications` → 403 `PROFILE_INCOMPLETE` |
+| 11-B | OK | `C-COMPLET` : `gaps=[]` ; 1 ligne `worker_availability` (weekday=1, `MORNING`) |
+| 11-C | OK | `PUT /me/worker-profile/availability` `{isAvailable:false}` ; compte reste `ACTIVE` ; `GET /jobs` 200 |
+| 11-D | OK | Session neuve + `POST /me/employer-profile` → `created:true`, `subscription.status=ACTIVE`, `endsAt=null`, label « Services gratuits » ; 1 ligne `subscriptions` |
+| 11-E | OK | `R-DUAL` : `canSwitch=true` ; `POST /me/mode` WORKER puis EMPLOYER ; UI `ModeSwitcher` + pas de « Publier » en mode candidat |
+| 11-F | OK | `R-ABO-EXPIRE` : `POST /jobs` → 403 `SUBSCRIPTION_INACTIVE` (« Votre abonnement n’est pas actif. ») ; message sur `/publier` |
+| 11-G | OK | `R-SUSPENDU` : statut `SUSPENDED` ; `POST /jobs` → 403 `FORBIDDEN` |
+| 11-H | OK | Double `POST /me/employer-profile` → `created:true` puis `created:false` ; 1 seule `subscriptions` |
+
+Jest : `profiles-subscription.int.test.ts` — **7/7 OK** (transaction, idempotence, availability, EXPIRED, SUSPENDED, PROFILE_INCOMPLETE).  
+Anomalie bloquante : **absente**. Formulaire d’offre complet : non livré (refus d’accès seulement sur `/publier`).
 
 **Instruction d’exécution pour Cursor**
 

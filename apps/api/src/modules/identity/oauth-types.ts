@@ -1,4 +1,4 @@
-export type OauthProvider = 'google' | 'facebook' | 'instagram';
+export type OauthProvider = 'google' | 'facebook' | 'github';
 
 /** Profil déjà vérifié auprès du provider (jamais de confiance client brute). */
 export type VerifiedOauthProfile = {

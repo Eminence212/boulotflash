@@ -1,6 +1,11 @@
 import pg from 'pg';
 
-export { createPrismaClient, type PrismaClient } from './client';
+export {
+  createPrismaClient,
+  type AvailabilitySlot,
+  type EmployerType,
+  type PrismaClient,
+} from './client';
 export {
   runSeed,
   seedReferentiel,

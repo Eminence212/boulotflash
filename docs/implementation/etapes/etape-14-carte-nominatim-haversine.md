@@ -59,19 +59,19 @@ Jest de Haversine, y compris l’arrondi. Test que le DTO public ignore les coor
 L’étape n’est **close** que si tous les points ci-dessous sont cochés. Exécuter les tests manuels du tableau **dans l’ordre**, noter OK/KO et l’anomalie éventuelle. Ne pas ouvrir l’étape suivante sans cette recette. Références : [CDC.md](../../CDC.md), [PLAN §9](../../PLAN_IMPLEMENTATION_BOULOTFLASH.md).
 
 **Tests manuels (obligatoires)**
-- [ ] `14-A` — Point public
-- [ ] `14-B` — Distance
-- [ ] `14-C` — Refus de position
-- [ ] `14-D` — Haversine
-- [ ] `14-E` — Sans User-Agent
-- [ ] `14-F` — MapTiler absent
+- [x] `14-A` — Point public
+- [x] `14-B` — Distance
+- [x] `14-C` — Refus de position
+- [x] `14-D` — Haversine
+- [x] `14-E` — Sans User-Agent
+- [x] `14-F` — MapTiler absent
 
 **Livrables et règles**
-- [ ] Carte publique sans point exact.
-- [ ] Position non historisée.
-- [ ] Pas de coordonnées inventées.
-- [ ] Tests automatisés exécutés avec succès : Jest Haversine + DTO sans coordonnées privées.
-- [ ] Compte rendu de recette fourni (IDs manuels OK/KO + anomalies).
+- [x] Carte publique sans point exact.
+- [x] Position non historisée.
+- [x] Pas de coordonnées inventées.
+- [x] Tests automatisés exécutés avec succès : Jest Haversine + DTO sans coordonnées privées.
+- [x] Compte rendu de recette fourni (IDs manuels OK/KO + anomalies).
 
 Anomalie bloquante : envoi de la position au serveur, ou marqueur sur l’adresse privée avant acceptation.
 

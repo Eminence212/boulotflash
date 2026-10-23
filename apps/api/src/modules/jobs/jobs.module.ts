@@ -4,12 +4,13 @@ import { RedisCacheModule } from '../redis-cache/redis-cache.module';
 import { AdminJobReviewController } from './admin-job-review.controller';
 import { JobsController } from './jobs.controller';
 import { JobsService } from './jobs.service';
+import { NominatimGeocoder } from './nominatim-geocoder';
 import { PublishersController } from './publishers.controller';
 
 @Module({
   imports: [IdentityModule, RedisCacheModule],
   controllers: [JobsController, AdminJobReviewController, PublishersController],
-  providers: [JobsService],
+  providers: [JobsService, NominatimGeocoder],
   exports: [JobsService],
 })
 export class JobsModule {}

@@ -28,3 +28,9 @@ export {
   labelFr,
   labelFrFor,
 } from './labels.fr';
+export { haversineKm, formatDistanceKm } from './haversine';
+export {
+  SIMULATED_PUBLIC_LANDMARK,
+  SIMULATED_PRIVATE_ADDRESS,
+  simulatedGeocode,
+} from './nominatim-fixture';

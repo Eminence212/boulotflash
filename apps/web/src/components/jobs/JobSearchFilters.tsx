@@ -344,8 +344,8 @@ export function JobSearchFilters({
           />
 
           <Text size="xs" c="dimmed">
-            Pas de tri par prix (CDF et USD ne sont pas comparés). Distance :
-            bientôt.
+            Pas de tri par prix (CDF et USD ne sont pas comparés). La distance
+            se calcule sur le détail, sans envoyer votre position.
           </Text>
 
           <Group grow mt="sm">

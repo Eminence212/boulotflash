@@ -100,6 +100,48 @@ describe('public-job.dto (unitaire)', () => {
     );
   });
 
+  it('laisse les coordonnées privées hors du DTO même si elles sont en base', () => {
+    const stored = {
+      privateLatitude: -4.3275,
+      privateLongitude: 15.318,
+      addressPrivate: '10 avenue de test, Gombe',
+      missionPhone: '+243800000000',
+    };
+    const dto = toPublicJobDto({
+      id: '00000000-0000-4000-8000-000000000101',
+      title: 'Service soirée',
+      category: 'Service',
+      amount: 1500,
+      currency: 'USD',
+      payUnit: 'MISSION',
+      startAt: new Date('2026-11-02T17:00:00.000Z'),
+      durationHours: 5,
+      commune: 'Gombe',
+      publicLandmark: 'près du marché',
+      publicLatitude: -4.305,
+      publicLongitude: 15.291,
+      placesRemaining: 2,
+      featured: false,
+      applicationsOpen: true,
+      publishedAt: new Date('2026-10-23T10:00:00.000Z'),
+      detailViewCount: 1,
+      publisher: {
+        name: 'Amina',
+        avatarUrl: null,
+        profilePath: '/recruteurs/00000000-0000-4000-8000-0000000000aa',
+      },
+    });
+    const json = JSON.stringify(dto);
+    expect(json).not.toContain(String(stored.privateLatitude));
+    expect(json).not.toContain(String(stored.privateLongitude));
+    expect(json).not.toContain('avenue de test');
+    expect(json).not.toContain(stored.missionPhone);
+    expect(json).not.toContain('privateLatitude');
+    expect(dto.publicLatitude).toBe(-4.305);
+    expect(dto.publicLongitude).toBe(15.291);
+    assertPublicPayload(dto as unknown as Record<string, unknown>);
+  });
+
   it('ne recompte pas une vue déjà enregistrée pour ce navigateur', () => {
     const jobId = '00000000-0000-4000-8000-000000000101';
     expect(hasViewedJob(undefined, jobId)).toBe(false);

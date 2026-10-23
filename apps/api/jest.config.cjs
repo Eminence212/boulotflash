@@ -6,6 +6,10 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.ts'],
   testTimeout: 60000,
   forceExit: true,
+  moduleNameMapper: {
+    '^@boulotflash/contracts$':
+      '<rootDir>/../../../packages/contracts/src/index.ts',
+  },
   transform: {
     '^.+\\.tsx?$': [
       'ts-jest',

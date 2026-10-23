@@ -1,10 +1,11 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, Injectable, Logger } from '@nestjs/common';
 import type { JobStatus, Prisma } from '@prisma/client';
 import { formatDistanceKm, haversineKm } from '../geo/user-location';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProfileService } from '../identity/profile.service';
 import { SessionService } from '../identity/session.service';
 import { PublicJobsCacheService } from '../redis-cache/public-jobs-cache.service';
+import { NominatimGeocoder } from './nominatim-geocoder';
 import {
   JobValidationError,
   SUBSTANTIAL_KEYS,
@@ -131,11 +132,14 @@ type JobDetailsRow = Prisma.JobGetPayload<{ select: typeof JOB_DETAILS_SELECT }>
 
 @Injectable()
 export class JobsService {
+  private readonly logger = new Logger(JobsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly sessions: SessionService,
     private readonly profiles: ProfileService,
     private readonly publicJobsCache: PublicJobsCacheService,
+    private readonly geocoder: NominatimGeocoder,
   ) {}
 
   async listPublicJobs(
@@ -706,6 +710,12 @@ export class JobsService {
         },
       });
     });
+
+    try {
+      await this.geocoder.enqueue(result.id);
+    } catch {
+      this.logger.warn('Géocodage non appliqué, publication conservée.');
+    }
 
     if (result.status === 'PUBLISHED') {
       await this.publicJobsCache.invalidate();

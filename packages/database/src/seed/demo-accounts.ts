@@ -2,6 +2,10 @@ import { createHash } from 'node:crypto';
 import * as argon2 from 'argon2';
 import type { AuthProvider, PrismaClient } from '@prisma/client';
 import {
+  SIMULATED_PRIVATE_ADDRESS,
+  SIMULATED_PUBLIC_LANDMARK,
+} from '@boulotflash/contracts';
+import {
   encodeTotpSecretForStorage,
   isTotpAdapterFixed,
 } from '../totp-crypto';
@@ -547,6 +551,12 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
       const existingJob = await prisma.job.findFirst({
         where: { title: { startsWith: 'J-PUB-1' } },
       });
+      const fixtureCoords = {
+        publicLatitude: SIMULATED_PUBLIC_LANDMARK.latitude,
+        publicLongitude: SIMULATED_PUBLIC_LANDMARK.longitude,
+        privateLatitude: SIMULATED_PRIVATE_ADDRESS.latitude,
+        privateLongitude: SIMULATED_PRIVATE_ADDRESS.longitude,
+      };
       if (!existingJob) {
         const startAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         const applyDeadline = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
@@ -561,6 +571,7 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
             communeId: gombe.id,
             publicLandmark: 'près du marché',
             addressPrivate: '10 avenue de test, Gombe',
+            ...fixtureCoords,
             startAt,
             durationHours: 4,
             workersNeeded: 2,
@@ -573,6 +584,23 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
             selectionDeadline,
             status: 'PUBLISHED',
             publishedAt: new Date(),
+          },
+        });
+      } else if (
+        existingJob.publicLatitude == null ||
+        existingJob.privateLatitude == null
+      ) {
+        await prisma.job.update({
+          where: { id: existingJob.id },
+          data: {
+            publicLatitude:
+              existingJob.publicLatitude ?? fixtureCoords.publicLatitude,
+            publicLongitude:
+              existingJob.publicLongitude ?? fixtureCoords.publicLongitude,
+            privateLatitude:
+              existingJob.privateLatitude ?? fixtureCoords.privateLatitude,
+            privateLongitude:
+              existingJob.privateLongitude ?? fixtureCoords.privateLongitude,
           },
         });
       }

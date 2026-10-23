@@ -1,12 +1,14 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Anchor, Group, Stack, Text, Title } from '@mantine/core';
 import { Copy, ShareNetwork } from '@phosphor-icons/react';
 import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import { AppChip } from '@/components/boulotflash/AppChip';
 import { JobPostHeader } from '@/components/boulotflash/JobPostHeader';
+import { MissionDistance } from '@/components/jobs/MissionDistance';
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
 import { AppShellLayout } from '@/components/layout/AppShellLayout';
 import { useMe } from '@/hooks/useMe';
@@ -20,6 +22,14 @@ import {
 import { copyPublicUrl, sharePublicUrl } from '@/lib/share';
 import { jobStatusLabel, jobStatusTone } from '@/lib/job-status';
 import { tokens } from '@/theme/tokens';
+
+const PublicMissionMap = dynamic(
+  () =>
+    import('@/components/jobs/PublicMissionMap').then(
+      (mod) => mod.PublicMissionMap,
+    ),
+  { ssr: false },
+);
 
 type PublicDetail = PublicJob & {
   description: string;
@@ -178,9 +188,15 @@ export default function MissionPublicPage({
               {job.commune}
               {job.publicLandmark ? ` · ${job.publicLandmark}` : ''}
             </Text>
-            <Text size="sm" c="dimmed">
-              {job.distanceLabel ?? 'position non partagée'}
-            </Text>
+            <PublicMissionMap
+              publicLatitude={job.publicLatitude}
+              publicLongitude={job.publicLongitude}
+              landmark={job.publicLandmark}
+            />
+            <MissionDistance
+              latitude={job.publicLatitude}
+              longitude={job.publicLongitude}
+            />
             <Text size="sm" c="dimmed">
               {job.placesRemaining} place
               {job.placesRemaining !== 1 ? 's' : ''} restante

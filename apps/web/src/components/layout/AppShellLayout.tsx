@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Box,
   Container,
@@ -22,6 +22,7 @@ import { SessionAuthButton } from '@/components/layout/SessionAuthButton';
 import { performLogout } from '@/hooks/useMe';
 import type { MeResponse } from '@/lib/me';
 import { isEmployerMode } from '@/lib/me';
+import { pageForMode } from '@/lib/mode-route';
 import { tokens } from '@/theme/tokens';
 
 type Tab = {
@@ -93,7 +94,17 @@ export function AppShellLayout({
   onLocationChanged,
 }: AppShellLayoutProps) {
   const pathname = usePathname() ?? '/';
+  const router = useRouter();
   const loggedIn = !!me;
+
+  useEffect(() => {
+    if (!me?.modesAvailable.canSwitch) return;
+    const next = pageForMode(
+      pathname,
+      isEmployerMode(me) ? 'EMPLOYER' : 'WORKER',
+    );
+    if (next) router.replace(next);
+  }, [me, pathname, router]);
   const tabs = tabsFor(me);
   const showTabbar = !hideTabbar && loggedIn;
   const [loggingOut, setLoggingOut] = useState(false);
@@ -122,7 +133,13 @@ export function AppShellLayout({
       component="main"
       mih="100dvh"
       bg={tokens.color.surface.canvas}
-      style={{ display: 'flex', flexDirection: 'column' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        ['--bf-tabbar' as string]: showTabbar
+          ? 'calc(4.75rem + env(safe-area-inset-bottom))'
+          : 'env(safe-area-inset-bottom)',
+      }}
     >
       <Box
         component="header"
@@ -187,7 +204,7 @@ export function AppShellLayout({
         style={{
           flex: 1,
           width: '100%',
-          paddingBottom: showTabbar ? '5.5rem' : undefined,
+          paddingBottom: 'var(--bf-tabbar)',
         }}
       >
         {loggedIn && me ? (

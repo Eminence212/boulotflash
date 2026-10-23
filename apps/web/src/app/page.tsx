@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Stack, Text, Title, List, Anchor, Group } from '@mantine/core';
 import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
+import { StatusBadge } from '@/components/boulotflash/StatusBadge';
 import { JobCard } from '@/components/boulotflash/JobCard';
 import {
   JobSearchFilters,
@@ -166,6 +167,28 @@ export default function HomePage() {
             Missions à Kinshasa. Consultez librement — candidature et publication
             demandent un profil complet.
           </Text>
+          {me ? (
+            <Group gap="xs">
+              <StatusBadge tone="soft">
+                {employer ? 'Recruteur' : 'Candidat'}
+              </StatusBadge>
+              {employer ? (
+                <StatusBadge
+                  tone={
+                    me.subscription?.status === 'ACTIVE' ? 'succes' : 'refus'
+                  }
+                >
+                  {me.subscription?.label ?? 'Sans abonnement'}
+                </StatusBadge>
+              ) : (
+                <StatusBadge
+                  tone={me.workerProfileComplete ? 'succes' : 'attente'}
+                >
+                  {me.workerProfileComplete ? 'Profil complet' : 'Incomplet'}
+                </StatusBadge>
+              )}
+            </Group>
+          ) : null}
         </Stack>
 
         {loading && me ? (
@@ -174,7 +197,7 @@ export default function HomePage() {
           </Text>
         ) : null}
 
-        {me && gaps.length > 0 ? (
+        {me && !employer && gaps.length > 0 ? (
           <AppAlert tone="warning" title="Profil à compléter">
             <Text size="sm" mb="xs">
               Il manque : {gaps.join(', ')}. La liste des offres reste ouverte.

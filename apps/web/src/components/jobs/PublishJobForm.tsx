@@ -1,19 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Checkbox,
+  Box,
   Group,
   NumberInput,
+  SegmentedControl,
   Select,
+  SimpleGrid,
   Stack,
+  Switch,
   Text,
   TextInput,
   Textarea,
 } from '@mantine/core';
+import { DateTimePicker } from '@mantine/dates';
 import { useForm } from '@mantine/form';
+import { useMediaQuery } from '@mantine/hooks';
+import { IconCalendar } from '@tabler/icons-react';
 import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
+import { tokens } from '@/theme/tokens';
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
 import { apiFetch, readAccessToken } from '@/lib/api';
 import {
@@ -174,8 +181,55 @@ type PublishJobFormProps = {
   initialJobId?: string | null;
 };
 
+function pickerDate(local: string): Date | null {
+  if (!local) return null;
+  const d = new Date(local);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function fromPicker(value: string | Date | null): string {
+  if (!value) return '';
+  const raw = value instanceof Date ? value.toISOString() : value.replace(' ', 'T');
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return '';
+  return toDatetimeLocalValue(d.toISOString());
+}
+
+function FormSection({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Stack gap="sm">
+      <Stack gap={2}>
+        <Text
+          size="xs"
+          tt="uppercase"
+          fw={700}
+          c="dimmed"
+          style={{ letterSpacing: '0.04em' }}
+        >
+          {title}
+        </Text>
+        {hint ? (
+          <Text size="sm" c="dimmed">
+            {hint}
+          </Text>
+        ) : null}
+      </Stack>
+      {children}
+    </Stack>
+  );
+}
+
 export function PublishJobForm({ initialJobId = null }: PublishJobFormProps) {
   const router = useRouter();
+  const isMobile = useMediaQuery('(max-width: 48em)');
   const [categories, setCategories] = useState<CatalogCategory[]>([]);
   const [communes, setCommunes] = useState<CatalogCommune[]>([]);
   const [jobId, setJobId] = useState<string | null>(initialJobId);
@@ -340,9 +394,24 @@ export function PublishJobForm({ initialJobId = null }: PublishJobFormProps) {
 
   const editable =
     !status || status === 'DRAFT' || status === 'REJECTED' || status === 'PUBLISHED';
+  const dateDropdown = isMobile ? 'modal' : 'popover';
+
+  function setWhen(field: 'startAt' | 'applyDeadline' | 'selectionDeadline') {
+    return (value: string | Date | null) => {
+      form.setFieldValue(field, fromPicker(value));
+    };
+  }
 
   return (
-    <Stack gap="md">
+    <Box
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        minHeight: 0,
+      }}
+    >
+    <Stack gap="md" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
       {status ? (
         <Group gap="sm">
           <StatusBadge tone={jobStatusTone(status)}>
@@ -362,31 +431,36 @@ export function PublishJobForm({ initialJobId = null }: PublishJobFormProps) {
         </AppAlert>
       ) : null}
 
-      <TextInput
-        label="Titre"
-        required
-        disabled={!editable}
-        {...form.getInputProps('title')}
-      />
-      <Select
-        label="Catégorie"
-        required
-        searchable
-        disabled={!editable}
-        placeholder="Choisir"
-        data={categories.map((c) => ({ value: c.id, label: c.name }))}
-        value={form.values.categoryId}
-        onChange={(v) => form.setFieldValue('categoryId', v)}
-      />
-      <Textarea
-        label="Description"
-        required
-        minRows={3}
-        disabled={!editable}
-        {...form.getInputProps('description')}
-      />
+      <FormSection title="La mission" hint="Ce que la personne verra en premier.">
+        <TextInput
+          label="Titre"
+          required
+          disabled={!editable}
+          {...form.getInputProps('title')}
+        />
+        <Select
+          label="Catégorie"
+          required
+          searchable
+          nothingFoundMessage="Aucune catégorie"
+          disabled={!editable}
+          placeholder="Choisir"
+          data={categories.map((c) => ({ value: c.id, label: c.name }))}
+          value={form.values.categoryId}
+          onChange={(v) => form.setFieldValue('categoryId', v)}
+          comboboxProps={{ withinPortal: true }}
+        />
+        <Textarea
+          label="Description"
+          required
+          minRows={3}
+          autosize
+          disabled={!editable}
+          {...form.getInputProps('description')}
+        />
+      </FormSection>
 
-      <Group grow align="flex-start">
+      <FormSection title="Rémunération" hint="Le montant et la devise restent séparés.">
         <TextInput
           label={`Montant (${form.values.currency})`}
           required
@@ -394,157 +468,205 @@ export function PublishJobForm({ initialJobId = null }: PublishJobFormProps) {
           disabled={!editable}
           {...form.getInputProps('amountMajor')}
         />
-        <Select
-          label="Devise"
+        <Stack gap={6}>
+          <Text size="sm" fw={500}>
+            Devise
+          </Text>
+          <SegmentedControl
+            fullWidth
+            disabled={!editable}
+            value={form.values.currency}
+            onChange={(v) => form.setFieldValue('currency', v)}
+            data={[
+              { label: 'USD', value: 'USD' },
+              { label: 'CDF', value: 'CDF' },
+            ]}
+          />
+        </Stack>
+        <Stack gap={6}>
+          <Text size="sm" fw={500}>
+            Base de rémunération
+          </Text>
+          <SegmentedControl
+            fullWidth
+            disabled={!editable}
+            value={form.values.payUnit}
+            onChange={(v) => form.setFieldValue('payUnit', v)}
+            data={[
+              { label: 'Mission', value: 'MISSION' },
+              { label: 'Heure', value: 'HOUR' },
+              { label: 'Journée', value: 'DAY' },
+            ]}
+          />
+        </Stack>
+        <Stack gap={6}>
+          <Text size="sm" fw={500}>
+            Paiement prévu
+          </Text>
+          <SegmentedControl
+            fullWidth
+            disabled={!editable}
+            value={form.values.payChannel}
+            onChange={(v) => form.setFieldValue('payChannel', v)}
+            data={[
+              { label: 'Espèces', value: 'CASH' },
+              { label: 'Mobile money', value: 'MOBILE_MONEY' },
+            ]}
+          />
+        </Stack>
+        <TextInput
+          label="Moment du paiement"
           disabled={!editable}
-          data={[
-            { value: 'USD', label: 'USD' },
-            { value: 'CDF', label: 'CDF' },
-          ]}
-          value={form.values.currency}
-          onChange={(v) => form.setFieldValue('currency', v ?? 'USD')}
+          {...form.getInputProps('payTiming')}
         />
-      </Group>
-      <Select
-        label="Base de rémunération"
-        disabled={!editable}
-        data={[
-          { value: 'MISSION', label: 'Par mission' },
-          { value: 'HOUR', label: 'Par heure' },
-          { value: 'DAY', label: 'Par journée' },
-        ]}
-        value={form.values.payUnit}
-        onChange={(v) => form.setFieldValue('payUnit', v ?? 'MISSION')}
-      />
-      <Select
-        label="Paiement prévu"
-        disabled={!editable}
-        data={[
-          { value: 'CASH', label: 'Espèces' },
-          { value: 'MOBILE_MONEY', label: 'Mobile money' },
-        ]}
-        value={form.values.payChannel}
-        onChange={(v) => form.setFieldValue('payChannel', v ?? 'CASH')}
-      />
-      <TextInput
-        label="Moment du paiement"
-        disabled={!editable}
-        {...form.getInputProps('payTiming')}
-      />
+      </FormSection>
 
-      <NumberInput
-        label="Places"
-        min={1}
-        max={20}
-        disabled={!editable}
-        value={form.values.workersNeeded}
-        onChange={(v) =>
-          form.setFieldValue(
-            'workersNeeded',
-            typeof v === 'number' ? v : Number(v) || 1,
-          )
-        }
-      />
-      <NumberInput
-        label="Durée (heures)"
-        min={1}
-        max={336}
-        disabled={!editable}
-        value={form.values.durationHours}
-        onChange={(v) =>
-          form.setFieldValue(
-            'durationHours',
-            typeof v === 'number' ? v : Number(v) || 1,
-          )
-        }
-      />
-      <TextInput
-        label="Début"
-        type="datetime-local"
-        required
-        disabled={!editable}
-        {...form.getInputProps('startAt')}
-      />
-      <TextInput
-        label="Limite de candidature"
-        type="datetime-local"
-        required
-        disabled={!editable}
-        {...form.getInputProps('applyDeadline')}
-      />
-      <TextInput
-        label="Clôture des sélections"
-        type="datetime-local"
-        required
-        disabled={!editable}
-        {...form.getInputProps('selectionDeadline')}
-      />
+      <FormSection title="Quand" hint="Les dates s’ouvrent dans le calendrier.">
+        <SimpleGrid cols={2} spacing="sm">
+          <NumberInput
+            label="Places"
+            min={1}
+            max={20}
+            hideControls
+            disabled={!editable}
+            value={form.values.workersNeeded}
+            onChange={(v) =>
+              form.setFieldValue(
+                'workersNeeded',
+                typeof v === 'number' ? v : Number(v) || 1,
+              )
+            }
+          />
+          <NumberInput
+            label="Durée (heures)"
+            min={1}
+            max={336}
+            hideControls
+            disabled={!editable}
+            value={form.values.durationHours}
+            onChange={(v) =>
+              form.setFieldValue(
+                'durationHours',
+                typeof v === 'number' ? v : Number(v) || 1,
+              )
+            }
+          />
+        </SimpleGrid>
+        <DateTimePicker
+          label="Début"
+          required
+          disabled={!editable}
+          placeholder="Choisir la date et l’heure"
+          valueFormat="DD/MM/YYYY HH:mm"
+          locale="fr"
+          dropdownType={dateDropdown}
+          leftSection={<IconCalendar size={18} stroke={1.75} aria-hidden />}
+          value={pickerDate(form.values.startAt)}
+          onChange={setWhen('startAt')}
+        />
+        <DateTimePicker
+          label="Limite de candidature"
+          required
+          disabled={!editable}
+          placeholder="Choisir la date et l’heure"
+          valueFormat="DD/MM/YYYY HH:mm"
+          locale="fr"
+          dropdownType={dateDropdown}
+          leftSection={<IconCalendar size={18} stroke={1.75} aria-hidden />}
+          value={pickerDate(form.values.applyDeadline)}
+          onChange={setWhen('applyDeadline')}
+        />
+        <DateTimePicker
+          label="Clôture des sélections"
+          required
+          disabled={!editable}
+          placeholder="Choisir la date et l’heure"
+          valueFormat="DD/MM/YYYY HH:mm"
+          locale="fr"
+          dropdownType={dateDropdown}
+          leftSection={<IconCalendar size={18} stroke={1.75} aria-hidden />}
+          value={pickerDate(form.values.selectionDeadline)}
+          onChange={setWhen('selectionDeadline')}
+        />
+      </FormSection>
 
-      <Select
-        label="Commune"
-        required
-        searchable
-        disabled={!editable}
-        placeholder="Choisir"
-        data={communes.map((c) => ({ value: c.id, label: c.name }))}
-        value={form.values.communeId}
-        onChange={(v) => form.setFieldValue('communeId', v)}
-      />
-      <TextInput
-        label="Repère public"
-        disabled={!editable}
-        {...form.getInputProps('publicLandmark')}
-      />
-      <TextInput
-        label="Adresse privée (après acceptation)"
-        disabled={!editable}
-        {...form.getInputProps('addressPrivate')}
-      />
-      <Checkbox
-        label="Mission au domicile privé"
-        disabled={!editable}
-        checked={form.values.atPrivateHome}
-        onChange={(e) =>
-          form.setFieldValue('atPrivateHome', e.currentTarget.checked)
-        }
-      />
+      <FormSection
+        title="Lieu"
+        hint="Le repère public est visible. L’adresse exacte reste privée."
+      >
+        <Select
+          label="Commune"
+          required
+          searchable
+          nothingFoundMessage="Aucune commune"
+          disabled={!editable}
+          placeholder="Choisir"
+          data={communes.map((c) => ({ value: c.id, label: c.name }))}
+          value={form.values.communeId}
+          onChange={(v) => form.setFieldValue('communeId', v)}
+          comboboxProps={{ withinPortal: true }}
+        />
+        <TextInput
+          label="Repère public"
+          disabled={!editable}
+          {...form.getInputProps('publicLandmark')}
+        />
+        <TextInput
+          label="Adresse privée"
+          description="Visible seulement après acceptation."
+          disabled={!editable}
+          {...form.getInputProps('addressPrivate')}
+        />
+        <Switch
+          label="Mission au domicile privé"
+          disabled={!editable}
+          checked={form.values.atPrivateHome}
+          onChange={(e) =>
+            form.setFieldValue('atPrivateHome', e.currentTarget.checked)
+          }
+        />
+      </FormSection>
 
-      <Textarea
-        label="Compétences nécessaires"
-        minRows={2}
-        disabled={!editable}
-        {...form.getInputProps('skillsRequired')}
-      />
-      <Textarea
-        label="Conditions matérielles"
-        minRows={2}
-        disabled={!editable}
-        {...form.getInputProps('materialConditions')}
-      />
-      <Checkbox
-        label="Prise en charge transport"
-        disabled={!editable}
-        checked={form.values.transportSupport}
-        onChange={(e) =>
-          form.setFieldValue('transportSupport', e.currentTarget.checked)
-        }
-      />
-      <Checkbox
-        label="Prise en charge repas"
-        disabled={!editable}
-        checked={form.values.mealsSupport}
-        onChange={(e) =>
-          form.setFieldValue('mealsSupport', e.currentTarget.checked)
-        }
-      />
-      <Checkbox
-        label="Prise en charge équipements"
-        disabled={!editable}
-        checked={form.values.equipmentSupport}
-        onChange={(e) =>
-          form.setFieldValue('equipmentSupport', e.currentTarget.checked)
-        }
-      />
+      <FormSection title="Conditions">
+        <Textarea
+          label="Compétences nécessaires"
+          minRows={2}
+          autosize
+          disabled={!editable}
+          {...form.getInputProps('skillsRequired')}
+        />
+        <Textarea
+          label="Conditions matérielles"
+          minRows={2}
+          autosize
+          disabled={!editable}
+          {...form.getInputProps('materialConditions')}
+        />
+        <Switch
+          label="Prise en charge du transport"
+          disabled={!editable}
+          checked={form.values.transportSupport}
+          onChange={(e) =>
+            form.setFieldValue('transportSupport', e.currentTarget.checked)
+          }
+        />
+        <Switch
+          label="Prise en charge du repas"
+          disabled={!editable}
+          checked={form.values.mealsSupport}
+          onChange={(e) =>
+            form.setFieldValue('mealsSupport', e.currentTarget.checked)
+          }
+        />
+        <Switch
+          label="Prise en charge des équipements"
+          disabled={!editable}
+          checked={form.values.equipmentSupport}
+          onChange={(e) =>
+            form.setFieldValue('equipmentSupport', e.currentTarget.checked)
+          }
+        />
+      </FormSection>
 
       <Text size="xs" c="dimmed">
         La publication consomme un droit gratuit tant que les services sont
@@ -561,32 +683,44 @@ export function PublishJobForm({ initialJobId = null }: PublishJobFormProps) {
           {info}
         </AppAlert>
       ) : null}
+    </Stack>
 
       {editable ? (
-        <Group grow>
-          <AppButton
-            variant="default"
-            loading={busy === 'draft'}
-            disabled={!!busy}
-            onClick={() => void saveDraft()}
-          >
-            Brouillon
-          </AppButton>
-          <AppButton
-            color="flash"
-            loading={busy === 'submit'}
-            disabled={!!busy}
-            onClick={() => void submitPublish()}
-          >
-            Publier
-          </AppButton>
-        </Group>
+        <Box
+          style={{
+            flexShrink: 0,
+            marginTop: 12,
+            paddingTop: 12,
+            paddingBottom: 'max(0px, env(safe-area-inset-bottom))',
+            borderTop: `1px solid ${tokens.color.border.subtle}`,
+            background: tokens.color.surface.card,
+          }}
+        >
+          <Group grow>
+            <AppButton
+              variant="default"
+              loading={busy === 'draft'}
+              disabled={!!busy}
+              onClick={() => void saveDraft()}
+            >
+              Brouillon
+            </AppButton>
+            <AppButton
+              color="flash"
+              loading={busy === 'submit'}
+              disabled={!!busy}
+              onClick={() => void submitPublish()}
+            >
+              Publier
+            </AppButton>
+          </Group>
+        </Box>
       ) : (
         <AppAlert tone="info" title="Lecture seule">
           Cette offre ne peut pas être modifiée dans son état actuel (
           {jobStatusLabel(status ?? '')}).
         </AppAlert>
       )}
-    </Stack>
+    </Box>
   );
 }

@@ -10,7 +10,7 @@ import {
   Text,
   UnstyledButton,
 } from '@mantine/core';
-import { IconBriefcase, IconHome, IconUser } from '@tabler/icons-react';
+import { IconBriefcase, IconClipboardText, IconHome, IconUser } from '@tabler/icons-react';
 import { BrandLogo } from '@/components/brand';
 import { ModeSwitcher } from '@/components/boulotflash/ModeSwitcher';
 import { AccountMenu } from '@/components/layout/AccountMenu';
@@ -72,6 +72,12 @@ function tabsFor(me: MeResponse | null): Tab[] {
       label: 'Accueil',
       icon: IconHome,
       match: (p) => p === '/',
+    },
+    {
+      href: '/candidatures',
+      label: 'Candidatures',
+      icon: IconClipboardText,
+      match: (p) => p.startsWith('/candidatures'),
     },
     {
       href: '/profil/candidat',

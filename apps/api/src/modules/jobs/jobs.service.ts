@@ -1,10 +1,23 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
-import type { JobStatus, Prisma } from '@prisma/client';
+import { Prisma, type JobStatus } from '@prisma/client';
+import { labelFr } from '@boulotflash/contracts';
 import { formatDistanceKm, haversineKm } from '../geo/user-location';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProfileService } from '../identity/profile.service';
 import { SessionService } from '../identity/session.service';
 import { PublicJobsCacheService } from '../redis-cache/public-jobs-cache.service';
+import {
+  ALREADY_APPLIED_MESSAGE,
+  DAILY_LIMIT_MESSAGE,
+  UNAVAILABLE_MESSAGE,
+  alreadyAppliedBlock,
+  applicationRequestHash,
+  canWithdraw,
+  dailyLimitReached,
+  idempotencyDecision,
+  isOwnJob,
+  offerAcceptsApplications,
+} from './application-rules';
 import { NominatimGeocoder } from './nominatim-geocoder';
 import {
   JobValidationError,
@@ -938,7 +951,12 @@ export class JobsService {
     };
   }
 
-  async applyGate(userId: string, jobId: string) {
+  async apply(
+    userId: string,
+    jobId: string,
+    body: { availabilityConfirmed?: unknown; message?: unknown },
+    idempotencyKey: string | undefined,
+  ): Promise<{ httpStatus: number; body: Record<string, unknown> }> {
     await this.sessions.assertHasPhone(userId);
 
     const user = await this.prisma.client.user.findUnique({
@@ -987,7 +1005,7 @@ export class JobsService {
         404,
       );
     }
-    if (baseJob.employerId === userId) {
+    if (isOwnJob(baseJob.employerId, userId)) {
       throw new HttpException(
         {
           code: 'OWN_JOB',
@@ -1006,13 +1024,11 @@ export class JobsService {
         status: true,
         applyDeadline: true,
         workersNeeded: true,
-        _count: {
-          select: {
-            participations: {
-              where: { status: { not: 'CANCELLED' } },
-            },
-          },
-        },
+        amount: true,
+        currency: true,
+        payUnit: true,
+        title: true,
+        commune: { select: { name: true } },
       },
     });
     if (!job) {
@@ -1025,12 +1041,14 @@ export class JobsService {
     const now = new Date();
     const occupied = await this.countOccupiedPlaces(jobId);
     const placesRemaining = Math.max(0, job.workersNeeded - occupied);
-    const applicationsOpen =
-      job.status === 'PUBLISHED' &&
-      placesRemaining > 0 &&
-      job.applyDeadline > now;
-
-    if (!applicationsOpen) {
+    if (
+      !offerAcceptsApplications({
+        status: job.status,
+        applyDeadline: job.applyDeadline,
+        placesRemaining,
+        now,
+      })
+    ) {
       throw new HttpException(
         {
           code: 'OFFER_NOT_OPEN',
@@ -1039,11 +1057,275 @@ export class JobsService {
         409,
       );
     }
+    if (user.status !== 'ACTIVE') {
+      throw new HttpException(
+        {
+          code: 'PROFILE_INCOMPLETE',
+          message: 'Complétez votre profil candidat avant de postuler.',
+          gaps: completeness.gaps,
+        },
+        403,
+      );
+    }
+    if (!worker?.isAvailable) {
+      throw new HttpException(
+        { code: 'NOT_AVAILABLE', message: UNAVAILABLE_MESSAGE },
+        409,
+      );
+    }
+    if (!worker.termsAcceptedAt) {
+      throw new HttpException(
+        {
+          code: 'TERMS_REQUIRED',
+          message: 'Acceptez les règles avant de postuler.',
+        },
+        403,
+      );
+    }
+    if (!worker.communeId || !worker.mainCategoryId) {
+      throw new HttpException(
+        {
+          code: 'PROFILE_INCOMPLETE',
+          message: 'Indiquez une compétence et une commune avant de postuler.',
+        },
+        403,
+      );
+    }
 
+    if (body.availabilityConfirmed !== true) {
+      throw new HttpException(
+        {
+          code: 'VALIDATION',
+          message: 'Confirmez votre disponibilité pour postuler.',
+        },
+        400,
+      );
+    }
+    const note =
+      typeof body.message === 'string' ? body.message.trim() : '';
+    if (note.length > 500) {
+      throw new HttpException(
+        { code: 'VALIDATION', message: 'Le message dépasse 500 caractères.' },
+        400,
+      );
+    }
+    const key = idempotencyKey?.trim() ?? '';
+    if (!key || key.length > 200) {
+      throw new HttpException(
+        { code: 'VALIDATION', message: 'Indiquez une clé d’idempotence.' },
+        400,
+      );
+    }
+    const hash = applicationRequestHash({
+      availabilityConfirmed: true,
+      message: note,
+    });
+    const storedKey = await this.prisma.client.idempotencyKey.findUnique({
+      where: { userId_key: { userId, key } },
+    });
+    const decision = idempotencyDecision(storedKey?.requestHash ?? null, hash);
+    if (decision === 'conflict') {
+      throw new HttpException(
+        {
+          code: 'VALIDATION',
+          message:
+            'Cette clé d’idempotence a déjà servi pour une autre demande.',
+        },
+        409,
+      );
+    }
+    if (decision === 'replay' && storedKey?.responseBody) {
+      return {
+        httpStatus: storedKey.responseCode,
+        body: storedKey.responseBody as Record<string, unknown>,
+      };
+    }
+
+    const existing = await this.prisma.client.application.findUnique({
+      where: { jobId_workerId: { jobId, workerId: userId } },
+      select: { status: true },
+    });
+    const blocked = alreadyAppliedBlock(existing?.status ?? null);
+    if (blocked) {
+      throw new HttpException(blocked, 409);
+    }
+
+    const settings = await this.prisma.client.platformSetting.findUnique({
+      where: { id: 1 },
+      select: { applicationsPerRollingDay: true },
+    });
+    const limit = settings?.applicationsPerRollingDay ?? 5;
+    const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    try {
+      const created = await this.prisma.client.$transaction(async (tx) => {
+        // Sérialise les candidatures d’une même personne : sans ce verrou,
+        // des POST parallèles sur des offres différentes passeraient tous
+        // le comptage avant la première insertion.
+        const lockKey = `applications:${userId}`;
+        await tx.$queryRaw`SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(hashtext(${lockKey}))) AS l`;
+        const recentCount = await tx.application.count({
+          where: { workerId: userId, appliedAt: { gte: since } },
+        });
+        if (dailyLimitReached(recentCount, limit)) {
+          throw new HttpException(
+            { code: 'RATE_LIMIT', message: DAILY_LIMIT_MESSAGE },
+            409,
+          );
+        }
+        const row = await tx.application.create({
+          data: {
+            jobId,
+            workerId: userId,
+            status: 'SUBMITTED',
+            message: note || null,
+            amount: job.amount,
+            currency: job.currency,
+            payUnit: job.payUnit,
+            communeName: job.commune.name,
+          },
+          select: { id: true, status: true },
+        });
+        const responseBody = {
+          id: row.id,
+          status: row.status,
+          message: 'Candidature envoyée',
+        };
+        await tx.idempotencyKey.create({
+          data: {
+            userId,
+            key,
+            requestHash: hash,
+            responseCode: 201,
+            responseBody,
+          },
+        });
+        return responseBody;
+      });
+      return { httpStatus: 201, body: created };
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        const replay = await this.prisma.client.idempotencyKey.findUnique({
+          where: { userId_key: { userId, key } },
+        });
+        if (
+          replay &&
+          idempotencyDecision(replay.requestHash, hash) === 'replay' &&
+          replay.responseBody
+        ) {
+          return {
+            httpStatus: replay.responseCode,
+            body: replay.responseBody as Record<string, unknown>,
+          };
+        }
+        throw new HttpException(
+          { code: 'ALREADY_APPLIED', message: ALREADY_APPLIED_MESSAGE },
+          409,
+        );
+      }
+      throw err;
+    }
+  }
+
+  async myApplication(userId: string, jobId: string) {
+    const row = await this.prisma.client.application.findUnique({
+      where: { jobId_workerId: { jobId, workerId: userId } },
+      select: { id: true, status: true, appliedAt: true },
+    });
+    if (!row) return { application: null };
     return {
-      ok: true as const,
-      jobId: job.id,
-      message: 'Profil complet. La candidature réelle arrive à l’étape 15.',
+      application: {
+        id: row.id,
+        status: row.status,
+        statusLabel: labelFr(row.status),
+        appliedAt: row.appliedAt.toISOString(),
+      },
+    };
+  }
+
+  async listMyApplications(userId: string) {
+    const rows = await this.prisma.client.application.findMany({
+      where: { workerId: userId },
+      orderBy: { appliedAt: 'desc' },
+      select: {
+        id: true,
+        status: true,
+        amount: true,
+        currency: true,
+        payUnit: true,
+        communeName: true,
+        appliedAt: true,
+        job: {
+          select: {
+            id: true,
+            title: true,
+            amount: true,
+            currency: true,
+            payUnit: true,
+            commune: { select: { name: true } },
+          },
+        },
+      },
+    });
+    return {
+      items: rows.map((row) => ({
+        id: row.id,
+        jobId: row.job.id,
+        title: row.job.title,
+        status: row.status,
+        statusLabel: labelFr(row.status),
+        appliedAt: row.appliedAt.toISOString(),
+        commune: row.communeName ?? row.job.commune.name,
+        amount: row.amount ?? row.job.amount,
+        currency: row.currency ?? row.job.currency,
+        payUnit: row.payUnit ?? row.job.payUnit,
+        offerExpiresAt: null,
+      })),
+    };
+  }
+
+  async withdraw(userId: string, applicationId: string) {
+    const row = await this.prisma.client.application.findUnique({
+      where: { id: applicationId },
+      select: { id: true, workerId: true, status: true },
+    });
+    if (!row || row.workerId !== userId) {
+      throw new HttpException(
+        { code: 'NOT_FOUND', message: 'Candidature introuvable.' },
+        404,
+      );
+    }
+    if (!canWithdraw(row.status)) {
+      throw new HttpException(
+        {
+          code: 'VALIDATION',
+          message: 'Cette candidature ne peut plus être retirée.',
+        },
+        409,
+      );
+    }
+    // Mise à jour conditionnelle : une sélection concurrente ne doit pas être écrasée.
+    const updated = await this.prisma.client.application.updateMany({
+      where: { id: applicationId, status: { in: ['SUBMITTED', 'SHORTLISTED'] } },
+      data: { status: 'WITHDRAWN' },
+    });
+    if (updated.count === 0) {
+      throw new HttpException(
+        {
+          code: 'VALIDATION',
+          message: 'Cette candidature ne peut plus être retirée.',
+        },
+        409,
+      );
+    }
+    return {
+      id: applicationId,
+      status: 'WITHDRAWN',
+      statusLabel: labelFr('WITHDRAWN'),
+      message: 'Candidature retirée',
     };
   }
 

@@ -11,10 +11,12 @@ export async function apiFetch<T>(
     method?: string;
     body?: unknown;
     accessToken?: string | null;
+    headers?: Record<string, string>;
   } = {},
 ): Promise<{ status: number; data: T & ApiError }> {
   const headers: Record<string, string> = {
     accept: 'application/json',
+    ...opts.headers,
   };
   if (opts.body !== undefined) {
     headers['content-type'] = 'application/json';

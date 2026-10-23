@@ -93,11 +93,30 @@ export class ProfileService {
         },
       });
 
+      const slots =
+        body.availability === undefined
+          ? await tx.workerAvailability.count({
+              where: { workerProfileId: profile.id },
+            })
+          : availability.length;
+      const profileReady = Boolean(
+        displayName && communeId && mainCategoryId && slots > 0,
+      );
+      const current = await tx.user.findUnique({
+        where: { id: userId },
+        select: { status: true },
+      });
       await tx.user.update({
         where: { id: userId },
         data: {
           displayName,
           activeMode: 'WORKER',
+          status:
+            profileReady &&
+            current?.status !== 'SUSPENDED' &&
+            current?.status !== 'CLOSED'
+              ? 'ACTIVE'
+              : undefined,
         },
       });
 

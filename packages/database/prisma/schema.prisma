@@ -597,19 +597,24 @@ model JobVersion {
 }
 
 model Application {
-  id        String            @id @default(uuid()) @db.Uuid
-  jobId     String            @map("job_id") @db.Uuid
-  workerId  String            @map("worker_id") @db.Uuid
-  status    ApplicationStatus @default(SUBMITTED)
-  message   String?
-  appliedAt DateTime          @default(now()) @map("applied_at") @db.Timestamptz(6)
-  updatedAt DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id          String            @id @default(uuid()) @db.Uuid
+  jobId       String            @map("job_id") @db.Uuid
+  workerId    String            @map("worker_id") @db.Uuid
+  status      ApplicationStatus @default(SUBMITTED)
+  message     String?
+  amount      Int?
+  currency    Currency?
+  payUnit     PayUnit?          @map("pay_unit")
+  communeName String?           @map("commune_name")
+  appliedAt   DateTime          @default(now()) @map("applied_at") @db.Timestamptz(6)
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   job             Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
   worker          User             @relation("ApplicationWorker", fields: [workerId], references: [id])
   selectionOffers SelectionOffer[]
   participation   Participation?
 
+  @@unique([jobId, workerId])
   @@index([workerId, appliedAt(sort: Desc)])
   @@index([jobId])
   @@map("applications")

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Avatar, Group, Menu, Stack, Text, UnstyledButton } from '@mantine/core';
 import {
   IconBriefcase,
+  IconClipboardText,
   IconLogout,
   IconMapPinOff,
   IconPlus,
@@ -77,6 +78,15 @@ export function AccountMenu({
       label: 'Compléter mon profil',
       icon: IconUserCheck,
       active: (path) => path.startsWith('/profil/completer'),
+    });
+  }
+
+  if (!employer) {
+    entries.push({
+      href: '/candidatures',
+      label: 'Mes candidatures',
+      icon: IconClipboardText,
+      active: (path) => path.startsWith('/candidatures'),
     });
   }
 

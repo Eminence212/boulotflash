@@ -1,9 +1,9 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { Anchor, Group, Stack, Text, Title } from '@mantine/core';
+import { Anchor, Checkbox, Group, Stack, Text, Textarea, Title } from '@mantine/core';
 import { Copy, ShareNetwork } from '@phosphor-icons/react';
 import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import { AppChip } from '@/components/boulotflash/AppChip';
@@ -11,6 +11,7 @@ import { JobPostHeader } from '@/components/boulotflash/JobPostHeader';
 import { MissionDistance } from '@/components/jobs/MissionDistance';
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
 import { AppShellLayout } from '@/components/layout/AppShellLayout';
+import { PageActions } from '@/components/layout/PageActions';
 import { useMe } from '@/hooks/useMe';
 import { apiFetch, readAccessToken } from '@/lib/api';
 import {
@@ -51,7 +52,16 @@ export default function MissionPublicPage({
   const [error, setError] = useState<string | null>(null);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
   const [applyMsg, setApplyMsg] = useState<string | null>(null);
+  const [applyTone, setApplyTone] = useState<'info' | 'success' | 'error'>('info');
   const [busy, setBusy] = useState(false);
+  const [confirmAvailable, setConfirmAvailable] = useState(false);
+  const [note, setNote] = useState('');
+  const [mine, setMine] = useState<{
+    id: string;
+    status: string;
+    statusLabel: string;
+  } | null>(null);
+  const idempotencyKey = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,6 +87,28 @@ export default function MissionPublicPage({
     };
   }, [id]);
 
+  function fetchMine(token: string) {
+    return apiFetch<{
+      application: { id: string; status: string; statusLabel: string } | null;
+    }>(`/jobs/${id}/my-application`, { accessToken: token });
+  }
+
+  useEffect(() => {
+    const token = readAccessToken();
+    if (!token) {
+      setMine(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchMine(token).then(({ data }) => {
+      if (cancelled) return;
+      setMine(data.application ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, me?.id]);
+
   function sharePathOf(j: PublicDetail) {
     return j.sharePath || `/missions/${j.id}`;
   }
@@ -100,23 +132,90 @@ export default function MissionPublicPage({
   }
 
   async function onApply() {
+    if (!confirmAvailable || mine) return;
     setApplyMsg(null);
     const token = readAccessToken();
     if (!token) {
       window.location.assign(`/connexion?next=/missions/${id}`);
       return;
     }
+    if (!idempotencyKey.current) idempotencyKey.current = crypto.randomUUID();
     setBusy(true);
-    const { status, data } = await apiFetch<{ message?: string; code?: string }>(
-      `/jobs/${id}/applications`,
-      { method: 'POST', accessToken: token },
-    );
-    setBusy(false);
-    if (status >= 400) {
+    try {
+      const { status, data } = await apiFetch<{
+        message?: string;
+        code?: string;
+        id?: string;
+        status?: string;
+        statusLabel?: string;
+      }>(`/jobs/${id}/applications`, {
+        method: 'POST',
+        accessToken: token,
+        headers: { 'Idempotency-Key': idempotencyKey.current },
+        body: {
+          availabilityConfirmed: true,
+          message: note.trim() || undefined,
+        },
+      });
+      if (status === 201) {
+        idempotencyKey.current = null;
+        setApplyTone('success');
+        setApplyMsg(data.message ?? 'Candidature envoyée');
+        setMine({
+          id: data.id ?? '',
+          status: data.status ?? 'SUBMITTED',
+          statusLabel: 'Soumise',
+        });
+        return;
+      }
+      setApplyTone(data.code === 'ALREADY_APPLIED' ? 'info' : 'error');
       setApplyMsg(data.message ?? 'Candidature impossible.');
-      return;
+      if (data.code === 'ALREADY_APPLIED') {
+        // Statut réel (ex. « Retirée ») plutôt qu’un « Soumise » supposé.
+        const { data: current } = await fetchMine(token);
+        if (current.application) setMine(current.application);
+      }
+    } catch {
+      setApplyTone('error');
+      setApplyMsg('Non envoyé');
+    } finally {
+      setBusy(false);
     }
-    setApplyMsg(data.message ?? 'Profil prêt pour candidater.');
+  }
+
+  async function onWithdraw() {
+    if (!mine?.id) return;
+    const token = readAccessToken();
+    if (!token) return;
+    setBusy(true);
+    setApplyMsg(null);
+    try {
+      const { status, data } = await apiFetch<{
+        message?: string;
+        status?: string;
+        statusLabel?: string;
+      }>(`/applications/${mine.id}/withdraw`, {
+        method: 'POST',
+        accessToken: token,
+      });
+      if (status >= 400) {
+        setApplyTone('error');
+        setApplyMsg(data.message ?? 'Retrait impossible.');
+        return;
+      }
+      setMine({
+        id: mine.id,
+        status: data.status ?? 'WITHDRAWN',
+        statusLabel: data.statusLabel ?? 'Retirée',
+      });
+      setApplyTone('info');
+      setApplyMsg(data.message ?? 'Candidature retirée');
+    } catch {
+      setApplyTone('error');
+      setApplyMsg('Non envoyé');
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (!job && !error) {
@@ -232,7 +331,7 @@ export default function MissionPublicPage({
               </AppAlert>
             ) : null}
             {applyMsg ? (
-              <AppAlert tone="info" title="Candidature">
+              <AppAlert tone={applyTone} title="Candidature">
                 {applyMsg}
               </AppAlert>
             ) : null}
@@ -259,19 +358,65 @@ export default function MissionPublicPage({
                   Copier
                 </AppButton>
               </Group>
-              {job.applicationsOpen && !isEmployerMode(me) ? (
-                <AppButton
-                  color="flash"
-                  fullWidth
-                  loading={busy}
-                  onClick={() => void onApply()}
-                >
-                  Postuler
-                </AppButton>
+              {mine ? (
+                <PageActions>
+                  <Stack gap="xs">
+                    <Text size="sm" fw={600}>
+                      Statut : {mine.statusLabel}
+                    </Text>
+                    <Group grow>
+                      {mine.status === 'SUBMITTED' ||
+                      mine.status === 'SHORTLISTED' ? (
+                        <AppButton
+                          variant="default"
+                          loading={busy}
+                          onClick={() => void onWithdraw()}
+                        >
+                          Retirer
+                        </AppButton>
+                      ) : null}
+                      <AppButton color="flash" disabled>
+                        Déjà postulé
+                      </AppButton>
+                    </Group>
+                  </Stack>
+                </PageActions>
+              ) : job.applicationsOpen && !isEmployerMode(me) ? (
+                <Stack gap="sm">
+                  <Checkbox
+                    checked={confirmAvailable}
+                    onChange={(event) =>
+                      setConfirmAvailable(event.currentTarget.checked)
+                    }
+                    label="Je confirme être disponible pour cette mission"
+                  />
+                  <Textarea
+                    label="Message"
+                    placeholder="Facultatif"
+                    maxLength={500}
+                    value={note}
+                    onChange={(event) => setNote(event.currentTarget.value)}
+                    autosize
+                    minRows={2}
+                  />
+                  <PageActions>
+                    <AppButton
+                      color="flash"
+                      fullWidth
+                      loading={busy}
+                      disabled={!confirmAvailable}
+                      onClick={() => void onApply()}
+                    >
+                      Postuler
+                    </AppButton>
+                  </PageActions>
+                </Stack>
               ) : (
-                <AppButton color="flash" fullWidth disabled>
-                  {job.applicationsOpen ? 'Postuler' : 'Clos'}
-                </AppButton>
+                <PageActions>
+                  <AppButton color="flash" fullWidth disabled>
+                    {job.applicationsOpen ? 'Postuler' : 'Clos'}
+                  </AppButton>
+                </PageActions>
               )}
             </Stack>
           </>

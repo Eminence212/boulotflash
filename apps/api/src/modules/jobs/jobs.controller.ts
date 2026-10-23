@@ -118,12 +118,27 @@ export class JobsController {
     return this.jobs.republish(req.userId!, id);
   }
 
-  /** Garde candidature (flux complet = étape 15). */
+  /** Candidature du compte connecté sur cette offre. */
+  @Get(':id/my-application')
+  @UseGuards(AuthGuard)
+  myApplication(@Req() req: AuthedRequest, @Param('id') id: string) {
+    return this.jobs.myApplication(req.userId!, id);
+  }
+
+  /** Candidature réelle. La réponse 201 n’est envoyée qu’après l’écriture. */
   @Post(':id/applications')
-  @HttpCode(200)
   @UseGuards(AuthGuard, PhoneRequiredGuard)
-  apply(@Req() req: AuthedRequest, @Param('id') id: string) {
-    return this.jobs.applyGate(req.userId!, id);
+  async apply(
+    @Req() req: AuthedRequest,
+    @Res({ passthrough: true }) res: Response,
+    @Param('id') id: string,
+    @Body() body: { availabilityConfirmed?: unknown; message?: unknown },
+  ) {
+    const header = req.headers['idempotency-key'];
+    const key = Array.isArray(header) ? header[0] : header;
+    const result = await this.jobs.apply(req.userId!, id, body ?? {}, key);
+    res.status(result.httpStatus);
+    return result.body;
   }
 
   private async optionalUserId(req: Request): Promise<string | null> {

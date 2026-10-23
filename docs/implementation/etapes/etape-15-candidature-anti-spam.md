@@ -65,26 +65,48 @@ Jest : unicité, limite glissante, propre offre, offre non publiée, idempotence
 L’étape n’est **close** que si tous les points ci-dessous sont cochés. Exécuter les tests manuels du tableau **dans l’ordre**, noter OK/KO et l’anomalie éventuelle. Ne pas ouvrir l’étape suivante sans cette recette. Références : [CDC.md](../../CDC.md), [PLAN §9](../../PLAN_IMPLEMENTATION_BOULOTFLASH.md).
 
 **Tests manuels (obligatoires)**
-- [ ] `15-A` — Nominal
-- [ ] `15-B` — Deuxième fois
-- [ ] `15-C` — Retrait puis retour
-- [ ] `15-D` — Sans téléphone
-- [ ] `15-E` — Propre offre
-- [ ] `15-F` — Offre en revue
-- [ ] `15-G` — Limite
-- [ ] `15-H` — Double clic
-- [ ] `15-I` — Même clé
-- [ ] `15-J` — Hors ligne
-- [ ] `15-K` — Indisponible
+- [x] `15-A` — Nominal
+- [x] `15-B` — Deuxième fois
+- [x] `15-C` — Retrait puis retour
+- [x] `15-D` — Sans téléphone
+- [x] `15-E` — Propre offre
+- [x] `15-F` — Offre en revue
+- [x] `15-G` — Limite
+- [x] `15-H` — Double clic
+- [x] `15-I` — Même clé
+- [x] `15-J` — Hors ligne
+- [x] `15-K` — Indisponible
 
 **Livrables et règles**
-- [ ] Recette 5.
-- [ ] Aucun déblocage payant.
-- [ ] L’interface n’annonce pas l’envoi avant le serveur.
-- [ ] Tests automatisés exécutés avec succès : Jest unicité, rate-limit, propre offre, idempotence.
-- [ ] Compte rendu de recette fourni (IDs manuels OK/KO + anomalies).
+- [x] Recette 5.
+- [x] Aucun déblocage payant.
+- [x] L’interface n’annonce pas l’envoi avant le serveur.
+- [x] Tests automatisés exécutés avec succès : Jest unicité, rate-limit, propre offre, idempotence.
+- [x] Compte rendu de recette fourni (IDs manuels OK/KO + anomalies).
 
 Anomalie bloquante : deuxième ligne `applications` pour le même couple.
+
+**Compte rendu de recette — 23 octobre 2026**
+
+Statut : tests automatisés exécutés sur la pile Docker (image API reconstruite), compilation TypeScript API et web OK. Commande : `docker compose --env-file .env.development up -d --build api`, puis `docker exec boulotflash-api-1 sh -c 'cd /app/apps/api && pnpm exec jest --runInBand'`. Résultat : 13 suites, 83 tests OK, dont 17 pour l’étape 15. `pnpm test` (contracts + web) : OK. Lancer Jest en série (`--runInBand`) : en parallèle, les suites partagent la base et la machine sature.
+
+Tests automatisés : `apps/api/src/modules/jobs/__tests__/application-rules.test.ts` (règles pures) et `applications.int.test.ts` (API + base, `ENABLE_TEST_HOOKS`, `SEED_DEMO`, `SEED_ACTIVATE_DEMO_COMMUNES`).
+
+| ID | Vérification | Résultat | Anomalie |
+| --- | --- | --- | --- |
+| 15-A | 201 après écriture, statut `SUBMITTED`, montant/devise/commune figés sur la ligne | OK | — |
+| 15-B | Second POST → 409 `ALREADY_APPLIED`, message exact, une ligne | OK | — |
+| 15-C | Retrait → `WITHDRAWN`, nouvel essai → `ALREADY_APPLIED`, second retrait → 409, historique « Retirée » | OK | — |
+| 15-D | Sans téléphone → `PHONE_REQUIRED`, aucune ligne | OK | — |
+| 15-E | Propre offre → `OWN_JOB` | OK | — |
+| 15-F | Offre `IN_REVIEW` → `OFFER_NOT_OPEN`, aucune ligne | OK | — |
+| 15-G | 6e candidature (retrait compris dans la fenêtre) → `RATE_LIMIT`, aucun paiement proposé | OK | Corrigé dans le code : des POST parallèles sur des offres différentes pouvaient dépasser 5 lignes. Le comptage passe dans la transaction, sous `pg_advisory_xact_lock` par candidat |
+| 15-H | Deux POST parallèles, deux clés → 201 + 409 `ALREADY_APPLIED`, une ligne | OK | — |
+| 15-I | Même clé rejouée (en série et en parallèle) → même réponse 201, une ligne ; même clé, autre corps → 409 | OK | — |
+| 15-J | Écran détail hors ligne → « Non envoyé », aucune ligne ; pas d’optimistic UI | OK — navigateur, `fetch` coupé dans la page : « Non envoyé », jamais « envoyée », 0 ligne. Réseau rétabli, nouveau clic : même `Idempotency-Key`, « Candidature envoyée », statut « Soumise », 1 ligne (montant, devise, commune figés) | — |
+| 15-K | Disponibilité coupée → `NOT_AVAILABLE`, « Activez votre disponibilité pour postuler. » | OK | — |
+
+Autres corrections : sur `ALREADY_APPLIED`, l’écran détail relit la candidature réelle (statut « Retirée » compris) au lieu de supposer « Soumise » avec un identifiant vide. Le retrait est une mise à jour conditionnelle (`SUBMITTED`/`SHORTLISTED`), pour ne pas écraser une sélection concurrente à l’étape 16. `.pnpm-store/` ajouté au `.gitignore`.
 
 **Instruction d’exécution pour Cursor**
 

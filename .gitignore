@@ -42,3 +42,4 @@ packages/database/src/generated/
 # OS / misc
 Thumbs.db
 Desktop.ini
+.pnpm-store/

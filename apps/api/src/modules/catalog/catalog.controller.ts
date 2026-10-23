@@ -18,4 +18,9 @@ export class CatalogController {
   communes(@Query('active') active?: string) {
     return this.catalog.listCommunes(wantsActive(active));
   }
+
+  @Get('cities')
+  cities(@Query('active') active?: string) {
+    return this.catalog.listCities(wantsActive(active));
+  }
 }

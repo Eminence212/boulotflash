@@ -10,9 +10,14 @@ import {
   Text,
   UnstyledButton,
 } from '@mantine/core';
-import { IconHome, IconPlus, IconUser } from '@tabler/icons-react';
+import { IconBriefcase, IconHome, IconUser } from '@tabler/icons-react';
 import { BrandLogo } from '@/components/brand';
 import { ModeSwitcher } from '@/components/boulotflash/ModeSwitcher';
+import { AccountMenu } from '@/components/layout/AccountMenu';
+import {
+  disableCurrentLocation,
+  LocationConsent,
+} from '@/components/layout/LocationConsent';
 import { SessionAuthButton } from '@/components/layout/SessionAuthButton';
 import { performLogout } from '@/hooks/useMe';
 import type { MeResponse } from '@/lib/me';
@@ -32,6 +37,8 @@ type AppShellLayoutProps = {
   onModeChanged?: (mode: 'WORKER' | 'EMPLOYER') => void;
   title?: string;
   hideTabbar?: boolean;
+  /** Profil et liste à recharger après un changement de position. */
+  onLocationChanged?: () => void;
 };
 
 function tabsFor(me: MeResponse | null): Tab[] {
@@ -45,10 +52,10 @@ function tabsFor(me: MeResponse | null): Tab[] {
         match: (p) => p === '/',
       },
       {
-        href: '/publier',
-        label: 'Publier',
-        icon: IconPlus,
-        match: (p) => p.startsWith('/publier'),
+        href: '/missions',
+        label: 'Missions',
+        icon: IconBriefcase,
+        match: (p) => p.startsWith('/missions') || p.startsWith('/publier'),
       },
       {
         href: '/profil/recruteur',
@@ -83,12 +90,21 @@ export function AppShellLayout({
   onModeChanged,
   title,
   hideTabbar,
+  onLocationChanged,
 }: AppShellLayoutProps) {
   const pathname = usePathname() ?? '/';
   const loggedIn = !!me;
   const tabs = tabsFor(me);
   const showTabbar = !hideTabbar && loggedIn;
   const [loggingOut, setLoggingOut] = useState(false);
+  const [locationRevoked, setLocationRevoked] = useState(false);
+
+  async function disableLocation() {
+    const ok = await disableCurrentLocation();
+    if (!ok) return;
+    setLocationRevoked(true);
+    onLocationChanged?.();
+  }
 
   async function logout() {
     if (loggingOut) return;
@@ -124,17 +140,21 @@ export function AppShellLayout({
           {/* Ligne 1 : marque + actions — jamais de titre ici (évite le chevauchement mobile). */}
           <Group justify="space-between" wrap="nowrap" gap="xs" align="center">
             <Box style={{ minWidth: 0, flex: '1 1 auto' }}>
-              <BrandLogo size="xs" href="/" />
+              <BrandLogo size="sm" href="/" />
             </Box>
             <Group gap={8} wrap="nowrap" justify="flex-end" style={{ flexShrink: 0 }}>
               {me?.modesAvailable.canSwitch && onModeChanged ? (
                 <ModeSwitcher me={me} onChanged={onModeChanged} />
               ) : null}
-              {loggedIn ? (
-                <SessionAuthButton
-                  action="logout"
-                  loading={loggingOut}
-                  onClick={() => void logout()}
+              {loggedIn && me ? (
+                <AccountMenu
+                  me={{
+                    ...me,
+                    locationShared: me.locationShared && !locationRevoked,
+                  }}
+                  loggingOut={loggingOut}
+                  onLogout={() => void logout()}
+                  onDisableLocation={() => void disableLocation()}
                 />
               ) : (
                 <SessionAuthButton action="login" href="/connexion" />
@@ -170,6 +190,15 @@ export function AppShellLayout({
           paddingBottom: showTabbar ? '5.5rem' : undefined,
         }}
       >
+        {loggedIn && me ? (
+          <LocationConsent
+            me={{
+              ...me,
+              locationShared: me.locationShared && !locationRevoked,
+            }}
+            onChanged={onLocationChanged}
+          />
+        ) : null}
         {children}
       </Container>
 

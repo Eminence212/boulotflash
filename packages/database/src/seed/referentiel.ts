@@ -44,6 +44,10 @@ export async function seedReferentiel(
   }
 
   if (options.activateDemoCommunes) {
+    await prisma.city.update({
+      where: { id: city.id },
+      data: { isActive: true },
+    });
     await prisma.commune.updateMany({
       where: { cityId: city.id, name: { in: [...DEMO_ACTIVE_COMMUNES] } },
       data: { isActive: true },

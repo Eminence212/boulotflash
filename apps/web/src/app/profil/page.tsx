@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Text } from '@mantine/core';
+import { GlobalLoader } from '@/components/feedback';
 import { useMe } from '@/hooks/useMe';
 import { isEmployerMode } from '@/lib/me';
 
@@ -20,9 +20,5 @@ export default function ProfilIndexPage() {
     }
   }, [loading, me, router]);
 
-  return (
-    <Text c="dimmed" ta="center" py="xl" size="sm">
-      Ouverture du profil…
-    </Text>
-  );
+  return <GlobalLoader fullscreen message="Ouverture du profil…" />;
 }

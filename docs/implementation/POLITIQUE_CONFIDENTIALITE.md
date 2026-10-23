@@ -77,7 +77,7 @@ Nous ne stockons pas votre mot de passe Google / Meta. Les jetons OAuth sont vé
 
 - journaux de sécurité (connexion admin, suspension, export, confirmation de paiement, ouverture d’un justificatif) ;
 - jetons de session ;
-- position ponctuelle du candidat pour calculer une **distance à vol d’oiseau** : elle n’est **pas historisée** et il n’y a **pas** de suivi continu.
+- position actuelle, **seulement si vous l’acceptez** : une seule coordonnée, remplacée à chaque connexion, pour afficher d’abord les missions les plus proches, en RDC. Pas d’historique et pas de suivi continu. Vous pouvez la retirer depuis votre compte.
 
 Nous ne demandons **pas** de pièce d’identité aux candidats par défaut.
 
@@ -94,6 +94,7 @@ Nous ne demandons **pas** de pièce d’identité aux candidats par défaut.
 | Justificatif de structure | Admin autorisé (URL privée courte) |
 | Export CSV admin | Finance / super-admin seulement |
 | Retours de mission | Privés (modération) |
+| Position actuelle, si vous l’acceptez | Vous seul. Elle n’est pas montrée aux autres. |
 
 Les administrateurs BoulotFlash accèdent aux données nécessaires à la modération, au support et à la finance, dans la limite de leur rôle.
 
@@ -157,7 +158,7 @@ Pour fonctionner, BoulotFlash s’appuie notamment sur :
 - **Google** et **Meta** (Facebook / Instagram) pour l’ouverture de session ;
 - hébergement, base de données, fichiers (stockage type S3) ;
 - opérateurs de paiement / mobile money pour les **services recruteur** (pas pour le salaire entre vous) ;
-- cartographie (tuiles OpenStreetMap / MapTiler, géocodage Nominatim) — sans historiser votre position continue.
+- cartographie (tuiles OpenStreetMap / MapTiler, géocodage Nominatim) — sans suivi continu de votre position.
 
 Ces prestataires reçoivent seulement ce qui est nécessaire à leur rôle.
 

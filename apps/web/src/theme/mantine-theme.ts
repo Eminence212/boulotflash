@@ -8,6 +8,24 @@ function toTuple(hex: string): MantineColorsTuple {
   ];
 }
 
+/**
+ * Échelle Mantine ancrée sur les jetons de marque.
+ * 1 = fond light, 2 = survol light/subtle, 6 = filled, 7 = survol filled, 9 = texte sur fond light.
+ * Une teinte unique rend le survol illisible (texte et fond identiques).
+ */
+const flashColors: MantineColorsTuple = [
+  '#F5FAFF',
+  tokens.color.brand.flashSoft,
+  '#D2E9FF',
+  tokens.color.brand.flashMuted,
+  '#85C4FF',
+  '#60B4FF',
+  tokens.color.brand.flash,
+  tokens.color.brand.flashHover,
+  '#226CAF',
+  '#194A79',
+];
+
 /** Aligné sur ui.mantine.dev : Outfit (titres) + pile système Mantine (corps). */
 const MANTINE_BODY =
   '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji';
@@ -15,7 +33,7 @@ const MANTINE_BODY =
 export const boulotflashTheme = createTheme({
   primaryColor: 'flash',
   colors: {
-    flash: toTuple(tokens.color.brand.flash),
+    flash: flashColors,
     attente: toTuple(mantineStatusColors.attente.fg),
     succes: toTuple(mantineStatusColors.succes.fg),
     refus: toTuple(mantineStatusColors.refus.fg),

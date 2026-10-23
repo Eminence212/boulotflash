@@ -1,39 +1,151 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Stack, Text, Title, List, Anchor, Group } from '@mantine/core';
-import { AppAlert } from '@/components/feedback';
+import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import { JobCard } from '@/components/boulotflash/JobCard';
+import {
+  JobSearchFilters,
+  type CatalogItem,
+  type JobFilterValues,
+} from '@/components/jobs/JobSearchFilters';
 import { AppShellLayout } from '@/components/layout/AppShellLayout';
 import { useMe } from '@/hooks/useMe';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, readAccessToken } from '@/lib/api';
 import { isEmployerMode, type PublicJob } from '@/lib/me';
 import { tokens } from '@/theme/tokens';
+
+type JobsListResponse = {
+  items?: PublicJob[];
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  message?: string;
+};
+
+const EMPTY_FILTERS: JobFilterValues = {
+  q: '',
+  cityId: null,
+  communeId: null,
+  categoryId: null,
+  currency: null,
+  date: null,
+  todayOnly: false,
+};
+
+function todayYmdKinshasa(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Kinshasa',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
 
 export default function HomePage() {
   const { me, loading, refresh } = useMe();
   const [jobs, setJobs] = useState<PublicJob[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [jobsError, setJobsError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const [cities, setCities] = useState<CatalogItem[]>([]);
+  const [communes, setCommunes] = useState<CatalogItem[]>([]);
+  const [categories, setCategories] = useState<CatalogItem[]>([]);
+  const [filters, setFilters] = useState<JobFilterValues>(EMPTY_FILTERS);
+  const [booted, setBooted] = useState(false);
 
   useEffect(() => {
-    void apiFetch<{ items?: PublicJob[] }>('/jobs').then(({ status, data }) => {
-      if (status >= 400) {
-        setJobsError(data.message ?? 'Liste des offres indisponible.');
-        return;
-      }
-      setJobs(data.items ?? []);
+    void Promise.all([
+      apiFetch<CatalogItem[]>('/catalog/cities?active=1'),
+      apiFetch<CatalogItem[]>('/catalog/communes?active=1'),
+      apiFetch<CatalogItem[]>('/catalog/categories?active=1'),
+    ]).then(([ci, co, ca]) => {
+      if (ci.status < 400 && Array.isArray(ci.data)) setCities(ci.data);
+      if (co.status < 400 && Array.isArray(co.data)) setCommunes(co.data);
+      if (ca.status < 400 && Array.isArray(ca.data)) setCategories(ca.data);
     });
   }, []);
 
+  const loadJobs = useCallback(
+    async (
+      pageNum = 1,
+      append = false,
+      override: JobFilterValues = filters,
+    ) => {
+      setBusy(true);
+      setJobsError(null);
+      const params = new URLSearchParams();
+      if (override.q.trim()) params.set('q', override.q.trim());
+      if (override.cityId) params.set('cityId', override.cityId);
+      if (override.communeId) params.set('communeId', override.communeId);
+      if (override.categoryId) params.set('categoryId', override.categoryId);
+      if (override.currency) params.set('currency', override.currency);
+      const day = override.todayOnly
+        ? todayYmdKinshasa()
+        : (override.date ?? '').trim();
+      if (day) params.set('date', day);
+      params.set('page', String(pageNum));
+      params.set('pageSize', '20');
+
+      const { status, data } = await apiFetch<JobsListResponse>(
+        `/jobs?${params.toString()}`,
+        { accessToken: readAccessToken() },
+      );
+      setBusy(false);
+      if (status >= 400) {
+        setJobsError(data.message ?? 'Liste des offres indisponible.');
+        if (!append) {
+          setJobs([]);
+          setTotal(0);
+          setBooted(true);
+        }
+        return;
+      }
+      const nextItems = data.items ?? [];
+      setJobs((prev) => (append ? [...prev, ...nextItems] : nextItems));
+      setTotal(data.total ?? 0);
+      setPage(data.page ?? pageNum);
+      if (!append) setBooted(true);
+    },
+    [filters],
+  );
+
+  useEffect(() => {
+    void loadJobs(1, false, EMPTY_FILTERS);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- premier chargement
+
   const gaps = me?.gaps ?? [];
   const employer = isEmployerMode(me);
+  const pageSize = 20;
+  const hasMore = page * pageSize < total;
+
+  function applyFilters(override?: JobFilterValues) {
+    const next = override ?? filters;
+    if (override) setFilters(override);
+    void loadJobs(1, false, next);
+  }
+
+  function resetFilters() {
+    setFilters(EMPTY_FILTERS);
+    void loadJobs(1, false, EMPTY_FILTERS);
+  }
+
+  if (!booted) {
+    return <GlobalLoader fullscreen />;
+  }
 
   return (
     <AppShellLayout
       me={me}
       onModeChanged={() => {
         void refresh();
+      }}
+      onLocationChanged={() => {
+        void refresh();
+        void loadJobs(1, false, filters);
       }}
     >
       <Stack gap="lg">
@@ -51,8 +163,8 @@ export default function HomePage() {
             aujourd’hui.
           </Title>
           <Text size="sm" c="dimmed">
-            Missions près de vous à Kinshasa. Consultez librement — candidature
-            et publication demandent un profil complet.
+            Missions à Kinshasa. Consultez librement — candidature et publication
+            demandent un profil complet.
           </Text>
         </Stack>
 
@@ -74,7 +186,12 @@ export default function HomePage() {
             </List>
             <Group mt="sm" gap="sm">
               {me.needsProfileCompletion ? (
-                <Anchor component={Link} href="/profil/completer" size="sm" fw={600}>
+                <Anchor
+                  component={Link}
+                  href="/profil/completer"
+                  size="sm"
+                  fw={600}
+                >
                   Compléter mon profil
                 </Anchor>
               ) : null}
@@ -102,29 +219,42 @@ export default function HomePage() {
           </AppAlert>
         ) : null}
 
+        <JobSearchFilters
+          values={filters}
+          onChange={setFilters}
+          cities={cities}
+          communes={communes}
+          categories={categories}
+          resultCount={total}
+          loading={busy}
+          onApply={applyFilters}
+          onReset={resetFilters}
+        />
+
         <Stack gap="sm">
-          <Text
-            size="xs"
-            tt="uppercase"
-            fw={700}
-            c="dimmed"
-            style={{ letterSpacing: '0.04em' }}
-          >
-            Missions près de vous
-          </Text>
           {jobsError ? (
             <AppAlert tone="error" title="Offres">
               {jobsError}
             </AppAlert>
           ) : null}
           {jobs.length === 0 && !jobsError ? (
-            <Text size="sm" c="dimmed">
-              Aucune offre publiée pour le moment.
-            </Text>
+            <AppAlert tone="info" title="Aucun résultat">
+              Essayez d’élargir la commune, la catégorie ou les mots-clés.
+            </AppAlert>
           ) : null}
           {jobs.map((job) => (
             <JobCard key={job.id} job={job} />
           ))}
+          {hasMore ? (
+            <AppButton
+              variant="default"
+              loading={busy}
+              onClick={() => void loadJobs(page + 1, true)}
+              fullWidth
+            >
+              Voir plus
+            </AppButton>
+          ) : null}
         </Stack>
       </Stack>
     </AppShellLayout>

@@ -9,6 +9,7 @@ import {
 } from '@boulotflash/database';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PublicJobsCacheService } from '../../redis-cache/public-jobs-cache.service';
 import {
   AdminJwtService,
   type AdminScopeClaim,
@@ -36,6 +37,7 @@ export class AdminAuthService {
     private readonly jwt: AdminJwtService,
     private readonly sessions: AdminSessionService,
     private readonly lockout: AdminLockoutService,
+    private readonly publicJobsCache: PublicJobsCacheService,
   ) {}
 
   async login(
@@ -373,6 +375,7 @@ export class AdminAuthService {
         metadata: { reason: motif, previousStatus: job.status },
       },
     });
+    await this.publicJobsCache.invalidate();
     return { id: jobId, status: 'SUSPENDED' };
   }
 

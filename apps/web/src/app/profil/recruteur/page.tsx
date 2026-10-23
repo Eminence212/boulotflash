@@ -13,7 +13,7 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { IconGift } from '@tabler/icons-react';
-import { AppAlert, AppButton } from '@/components/feedback';
+import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import {
   PhoneField,
   isValidPilotPhoneInput,
@@ -116,13 +116,7 @@ export default function ProfilRecruteurPage() {
   }
 
   if (loading || !me) {
-    return (
-      <AppShellLayout me={me} onModeChanged={() => void refresh()}>
-        <Text c="dimmed" size="sm">
-          Chargement…
-        </Text>
-      </AppShellLayout>
-    );
+    return <GlobalLoader fullscreen />;
   }
 
   const sub = me.subscription;
@@ -289,16 +283,25 @@ export default function ProfilRecruteurPage() {
         </AppButton>
 
         {hasEmployer && subActive ? (
-          <AppButton
-            variant="outline"
-            color="flash"
-            fullWidth
-            onClick={() => {
-              window.location.assign('/publier');
-            }}
-          >
-            Créer une mission
-          </AppButton>
+          <Group grow>
+            <AppButton
+              variant="outline"
+              color="flash"
+              onClick={() => {
+                window.location.assign('/missions');
+              }}
+            >
+              Mes missions
+            </AppButton>
+            <AppButton
+              color="flash"
+              onClick={() => {
+                window.location.assign('/publier');
+              }}
+            >
+              Créer
+            </AppButton>
+          </Group>
         ) : null}
       </Stack>
     </AppShellLayout>

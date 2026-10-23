@@ -5,6 +5,11 @@ import {
   type OauthProvider,
   type VerifiedOauthProfile,
 } from './oauth-types';
+import {
+  googleProfilePhotoUrl,
+  pickGooglePeoplePhoto,
+  readProviderPicture,
+} from './oauth-picture';
 import { normalizePilotPhone } from './phone';
 
 const GOOGLE_JWKS = createRemoteJWKSet(
@@ -117,15 +122,59 @@ export class OauthTokenVerifierService {
       throw unauthorized('Échange code Google refusé.');
     }
 
+    const accessToken =
+      typeof tokenJson.access_token === 'string' ? tokenJson.access_token : null;
     const idToken = tokenJson.id_token;
+
     if (typeof idToken === 'string' && idToken.length > 0) {
-      return this.verifyGoogleIdToken(idToken);
+      const profile = await this.verifyGoogleIdToken(idToken);
+      if (!accessToken) return profile;
+      const avatarUrl = await this.googleAvatar(accessToken, profile.avatarUrl);
+      return { ...profile, avatarUrl };
     }
 
-    const accessToken = tokenJson.access_token;
-    if (typeof accessToken !== 'string') {
+    if (!accessToken) {
       throw unauthorized('Réponse Google sans jeton utilisable.');
     }
+    const info = await this.googleUserInfo(accessToken);
+    if (!info) throw unauthorized('Userinfo Google inaccessible.');
+    return this.mapGoogleClaims(info);
+  }
+
+  /**
+   * Le `picture` du id_token est souvent absent ou limité à une miniature.
+   * People API, puis userinfo, puis cette miniature.
+   */
+  private async googleAvatar(
+    accessToken: string,
+    fromIdToken: string | null,
+  ): Promise<string | null> {
+    const fromPeople = await this.googlePeoplePhoto(accessToken);
+    if (fromPeople) return fromPeople;
+    const info = await this.googleUserInfo(accessToken);
+    const fromUserInfo = googleProfilePhotoUrl(
+      info ? readProviderPicture(info.picture) : null,
+    );
+    if (fromUserInfo) return fromUserInfo;
+    return googleProfilePhotoUrl(fromIdToken);
+  }
+
+  private async googlePeoplePhoto(accessToken: string): Promise<string | null> {
+    const res = await fetch(
+      'https://people.googleapis.com/v1/people/me?personFields=photos',
+      { headers: { authorization: `Bearer ${accessToken}` } },
+    );
+    if (!res.ok) {
+      this.logger.warn(`Google People photos HTTP ${res.status}`);
+      return null;
+    }
+    const body = (await res.json().catch(() => ({}))) as { photos?: unknown };
+    return pickGooglePeoplePhoto(body.photos);
+  }
+
+  private async googleUserInfo(
+    accessToken: string,
+  ): Promise<Record<string, unknown> | null> {
     const infoRes = await fetch(
       'https://openidconnect.googleapis.com/v1/userinfo',
       { headers: { authorization: `Bearer ${accessToken}` } },
@@ -135,9 +184,10 @@ export class OauthTokenVerifierService {
       unknown
     >;
     if (!infoRes.ok) {
-      throw unauthorized('Userinfo Google inaccessible.');
+      this.logger.warn(`Google userinfo HTTP ${infoRes.status}`);
+      return null;
     }
-    return this.mapGoogleClaims(info);
+    return info;
   }
 
   private mapGoogleClaims(
@@ -171,7 +221,7 @@ export class OauthTokenVerifierService {
       email,
       emailVerified,
       displayName: asString(claims.name) ?? null,
-      avatarUrl: asString(claims.picture) ?? null,
+      avatarUrl: googleProfilePhotoUrl(readProviderPicture(claims.picture)),
       phoneE164: null,
     };
   }
@@ -201,14 +251,13 @@ export class OauthTokenVerifierService {
       throw unauthorized('Profil Facebook inaccessible.');
     }
 
-    const picture = data.picture as { data?: { url?: string } } | undefined;
     return {
       provider: 'facebook',
       providerUserId: asString(data.id)!,
       email: asString(data.email)?.toLowerCase() ?? null,
       emailVerified: !!asString(data.email),
       displayName: asString(data.name) ?? null,
-      avatarUrl: picture?.data?.url ?? null,
+      avatarUrl: readProviderPicture(data.picture),
       phoneE164: normalizePilotPhone(asString(data.mobile_phone)),
     };
   }

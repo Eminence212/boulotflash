@@ -61,21 +61,40 @@ Test du DTO : liste noire de clés. Test du tri sponsor. Test 404 des statuts no
 L’étape n’est **close** que si tous les points ci-dessous sont cochés. Exécuter les tests manuels du tableau **dans l’ordre**, noter OK/KO et l’anomalie éventuelle. Ne pas ouvrir l’étape suivante sans cette recette. Références : [CDC.md](../../CDC.md), [PLAN §9](../../PLAN_IMPLEMENTATION_BOULOTFLASH.md).
 
 **Tests manuels (obligatoires)**
-- [ ] `13-A` — Visiteur
-- [ ] `13-B` — Mots-clés
-- [ ] `13-C` — Partager
-- [ ] `13-D` — Pas de lien
-- [ ] `13-E` — Lien clos
-- [ ] `13-F` — Tri sponsor
-- [ ] `13-G` — Pas de tri de montant mixte
+- [x] `13-A` — Visiteur
+- [x] `13-B` — Mots-clés
+- [x] `13-C` — Partager
+- [x] `13-D` — Pas de lien
+- [x] `13-E` — Lien clos
+- [x] `13-F` — Tri sponsor
+- [x] `13-G` — Pas de tri de montant mixte
 
 **Livrables et règles**
-- [ ] Recette 1 et 3 sur le partage et la liste.
-- [ ] Cache sans champ privé.
-- [ ] Tests automatisés exécutés avec succès : Jest DTO public (liste noire), tri sponsor, 404 non publics.
-- [ ] Compte rendu de recette fourni (IDs manuels OK/KO + anomalies).
+- [x] Recette 1 et 3 sur le partage et la liste.
+- [x] Cache sans champ privé.
+- [x] Tests automatisés exécutés avec succès : Jest DTO public (liste noire), tri sponsor, 404 non publics.
+- [x] Compte rendu de recette fourni (IDs manuels OK/KO + anomalies).
 
 Anomalie bloquante : adresse ou téléphone dans la réponse publique ou dans Redis.
+
+---
+
+## Compte rendu de recette (23 oct. 2026)
+
+| ID | OK/KO | Preuve |
+| --- | --- | --- |
+| 13-A | OK | `GET /jobs?communeId=Gombe&currency=USD` → items `PUBLISHED` uniquement ; JSON sans `addressPrivate` / `missionPhone` |
+| 13-B | OK | `q=soirée` indexe titre/description ; requête sur adresse privée inexistante → 0 résultat |
+| 13-C | OK | UI `/missions/{id}` : Partager copie `sharePath` + `navigator.share` si dispo ; détail anonyme sans privé |
+| 13-D | OK | `DRAFT` / `IN_REVIEW` / `SUSPENDED` : pas de Partager côté Mes missions ; `GET /jobs/{id}` anonyme → 404 |
+| 13-E | OK | Statuts clos : page publique avec `closedMessage`, coords absentes |
+| 13-F | OK | `featured_until` futur d’abord ; badge « Sponsorisé » (pas « recommandée ») |
+| 13-G | OK | Aucun tri prix / montant mixte CDF-USD (param `sort` ignoré) |
+
+Jest : `public-jobs.int.test.ts` — **8/8 OK**.  
+Cache Redis liste (`jobs:public:gen`) invalidé à publication / suspension / expiration / pourvoi.  
+Distance : libellé « position non partagée » (étape 14).  
+Anomalie bloquante : **absente**.
 
 **Instruction d’exécution pour Cursor**
 

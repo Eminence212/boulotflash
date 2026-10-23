@@ -256,7 +256,12 @@ model User {
   activeMode       String?    @map("active_mode")
   createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
-  lastLoginAt      DateTime?  @map("last_login_at") @db.Timestamptz(6)
+  lastLoginAt       DateTime? @map("last_login_at") @db.Timestamptz(6)
+  /// Dernière position acceptée. Une seule valeur, remplacée, jamais un historique.
+  locationLatitude  Float?    @map("location_latitude")
+  locationLongitude Float?    @map("location_longitude")
+  locationConsentAt DateTime? @map("location_consent_at") @db.Timestamptz(6)
+  locationUpdatedAt DateTime? @map("location_updated_at") @db.Timestamptz(6)
 
   roles                    UserRole[]
   authIdentities           AuthIdentity[]
@@ -551,10 +556,12 @@ model Job {
   applyDeadline      DateTime   @map("apply_deadline") @db.Timestamptz(6)
   selectionDeadline  DateTime   @map("selection_deadline") @db.Timestamptz(6)
   status             JobStatus  @default(DRAFT)
+  rejectionReason    String?    @map("rejection_reason")
   isFeatured         Boolean    @default(false) @map("is_featured")
   featuredUntil      DateTime?  @map("featured_until") @db.Timestamptz(6)
   currentVersionId   String?    @map("current_version_id") @db.Uuid
   publishedAt        DateTime?  @map("published_at") @db.Timestamptz(6)
+  detailViewCount    Int        @default(0) @map("detail_view_count")
   expiresAt          DateTime?  @map("expires_at") @db.Timestamptz(6)
   createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)

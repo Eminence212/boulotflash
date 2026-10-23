@@ -5,6 +5,8 @@ import pg from 'pg';
 export type {
   AvailabilitySlot,
   EmployerType,
+  JobStatus,
+  Prisma,
   PrismaClient,
 } from '@prisma/client';
 

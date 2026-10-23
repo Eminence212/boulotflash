@@ -40,6 +40,8 @@ export type MeResponse = {
   phone?: string | null;
   displayName?: string | null;
   avatarUrl?: string | null;
+  /** Vrai seulement si la personne a accepté d’enregistrer sa position actuelle. */
+  locationShared?: boolean;
   status: string;
   phoneConfirmedAt?: string | null;
   activeMode?: 'WORKER' | 'EMPLOYER' | string | null;
@@ -67,6 +69,12 @@ export type MeResponse = {
   message?: string;
 };
 
+export type PublicPublisher = {
+  name: string;
+  avatarUrl: string | null;
+  profilePath: string | null;
+};
+
 export type PublicJob = {
   id: string;
   title: string;
@@ -78,9 +86,20 @@ export type PublicJob = {
   durationHours: number;
   commune: string;
   publicLandmark: string | null;
+  publicLatitude?: number | null;
+  publicLongitude?: number | null;
   placesRemaining: number;
   featured: boolean;
+  sharePath?: string;
   applicationsOpen: boolean;
+  status?: string;
+  description?: string;
+  closedMessage?: string | null;
+  distanceLabel?: string;
+  workersNeeded?: number;
+  publishedAt?: string | null;
+  detailViewCount?: number;
+  publisher?: PublicPublisher;
 };
 
 export const WEEKDAY_LABELS: Record<number, string> = {
@@ -113,9 +132,18 @@ export function isEmployerMode(me: MeResponse | null): boolean {
   return me.modesAvailable.employer && !me.modesAvailable.worker;
 }
 
-export function formatMoney(amount: number, currency: string): string {
-  if (currency === 'USD') return `${amount} USD`;
-  return `${amount.toLocaleString('fr-FR')} CDF`;
+/** `amount` API = centimes (1500 → 15 USD). */
+export function formatMoney(amountCents: number, currency: string): string {
+  const major = amountCents / 100;
+  const label =
+    major % 1 === 0
+      ? String(Math.round(major))
+      : major.toLocaleString('fr-FR', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2,
+        });
+  if (currency === 'USD') return `${label} USD`;
+  return `${label} CDF`;
 }
 
 export function formatStartAt(iso: string): string {

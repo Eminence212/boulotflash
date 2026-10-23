@@ -10,11 +10,9 @@ import {
   Text,
   Title,
   ScrollArea,
-  Loader,
-  Center,
 } from '@mantine/core';
 import { BrandLogo, BRAND_LOGO_PAGE_SIZE } from '@/components/brand';
-import { AppAlert } from '@/components/feedback';
+import { AppAlert, GlobalLoader } from '@/components/feedback';
 import { LegalMarkdown } from '@/components/legal/LegalMarkdown';
 import { prepareLegalMarkdown } from '@/components/legal/prepareLegalMarkdown';
 import { tokens } from '@/theme/tokens';
@@ -50,6 +48,10 @@ export function LegalDocumentPage({ title, src }: LegalDocumentPageProps) {
     };
   }, [src]);
 
+  if (!body && !error) {
+    return <GlobalLoader fullscreen />;
+  }
+
   return (
     <main className="min-h-dvh bg-canvas">
       <Container size={720} px={{ base: 'md', sm: 'xl' }} py={{ base: 'xl', md: 48 }}>
@@ -84,12 +86,6 @@ export function LegalDocumentPage({ title, src }: LegalDocumentPageProps) {
                 <AppAlert tone="error" title="Document">
                   {error}
                 </AppAlert>
-              ) : null}
-
-              {!body && !error ? (
-                <Center py="xl">
-                  <Loader color="flash" size="sm" />
-                </Center>
               ) : null}
 
               {body ? (

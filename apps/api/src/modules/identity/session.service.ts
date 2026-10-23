@@ -4,6 +4,8 @@ import { LEGAL_DOCS_VERSION } from '@boulotflash/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from './jwt.service';
 import { maskEmail } from './mask';
+import { isInDrc, roundCoord } from '../geo/user-location';
+import { clientAvatarUrl } from './oauth-picture';
 import { isPilotPhone, normalizePilotPhone } from './phone';
 import { ProfileService } from './profile.service';
 
@@ -186,6 +188,9 @@ export class SessionService {
         phoneConfirmedAt: true,
         ageConfirmedAt: true,
         activeMode: true,
+        locationLatitude: true,
+        locationLongitude: true,
+        locationConsentAt: true,
         createdAt: true,
         roles: { select: { role: true } },
         subscription: {
@@ -240,7 +245,11 @@ export class SessionService {
       email: user.email,
       phone: user.phone,
       displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
+      avatarUrl: clientAvatarUrl(user.id, user.avatarUrl),
+      locationShared:
+        user.locationConsentAt != null &&
+        user.locationLatitude != null &&
+        user.locationLongitude != null,
       status: user.status,
       phoneConfirmedAt: user.phoneConfirmedAt,
       ageConfirmedAt: user.ageConfirmedAt,
@@ -367,6 +376,53 @@ export class SessionService {
     }
 
     await this.prisma.client.user.update({ where: { id: userId }, data });
+    return this.getUserForMe(userId);
+  }
+
+  /**
+   * Enregistre ou retire la position actuelle. Pas d’historique :
+   * un nouvel accord remplace les coordonnées précédentes.
+   */
+  async setCurrentLocation(
+    userId: string,
+    body: { consent?: boolean; latitude?: number; longitude?: number },
+  ) {
+    if (body.consent !== true) {
+      await this.prisma.client.user.update({
+        where: { id: userId },
+        data: {
+          locationLatitude: null,
+          locationLongitude: null,
+          locationConsentAt: null,
+          locationUpdatedAt: null,
+        },
+      });
+      return this.getUserForMe(userId);
+    }
+
+    const latitude = Number(body.latitude);
+    const longitude = Number(body.longitude);
+    if (!isInDrc(latitude, longitude)) {
+      throw new HttpException(
+        {
+          code: 'VALIDATION',
+          message:
+            'La position doit se trouver en République démocratique du Congo.',
+        },
+        400,
+      );
+    }
+
+    const now = new Date();
+    await this.prisma.client.user.update({
+      where: { id: userId },
+      data: {
+        locationLatitude: roundCoord(latitude),
+        locationLongitude: roundCoord(longitude),
+        locationConsentAt: now,
+        locationUpdatedAt: now,
+      },
+    });
     return this.getUserForMe(userId);
   }
 

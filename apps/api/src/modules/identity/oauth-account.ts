@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@boulotflash/database';
 import { DomainError } from './domain-error';
 import { maskEmail } from './mask';
+import { isProviderAvatarUrl } from './oauth-picture';
 import type { VerifiedOauthProfile } from './oauth-types';
 import { normalizePilotPhone } from './phone';
 
@@ -164,7 +165,11 @@ async function applyProviderFields(
   if (profile.displayName && !user.displayName) {
     data.displayName = profile.displayName;
   }
-  if (profile.avatarUrl && !user.avatarUrl) {
+  if (
+    profile.avatarUrl &&
+    profile.avatarUrl !== user.avatarUrl &&
+    (!user.avatarUrl || isProviderAvatarUrl(user.avatarUrl))
+  ) {
     data.avatarUrl = profile.avatarUrl;
   }
   const phone = profile.phoneE164

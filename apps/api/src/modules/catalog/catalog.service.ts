@@ -36,4 +36,16 @@ export class CatalogService {
       },
     });
   }
+
+  listCities(activeOnly: boolean) {
+    return this.prisma.client.city.findMany({
+      where: activeOnly ? { isActive: true } : undefined,
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+      },
+    });
+  }
 }

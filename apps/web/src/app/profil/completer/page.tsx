@@ -11,7 +11,7 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
-import { AppAlert, AppButton } from '@/components/feedback';
+import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import { apiFetch, clearAccessToken, readAccessToken } from '@/lib/api';
 import { tokens } from '@/theme/tokens';
 
@@ -93,13 +93,7 @@ export default function CompleterProfilPage() {
   }
 
   if (boot) {
-    return (
-      <AuthPageShell>
-        <Text ta="center" c="dimmed" size="sm">
-          Chargement du profil…
-        </Text>
-      </AuthPageShell>
-    );
+    return <GlobalLoader fullscreen message="Chargement du profil…" />;
   }
 
   return (

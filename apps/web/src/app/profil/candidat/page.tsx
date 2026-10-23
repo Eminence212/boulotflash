@@ -14,7 +14,7 @@ import {
   Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { AppAlert, AppButton } from '@/components/feedback';
+import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import {
   PhoneField,
   isValidPilotPhoneInput,
@@ -170,13 +170,7 @@ export default function ProfilCandidatPage() {
   }
 
   if (loading || !me) {
-    return (
-      <AppShellLayout me={me} onModeChanged={() => void refresh()}>
-        <Text c="dimmed" size="sm">
-          Chargement…
-        </Text>
-      </AppShellLayout>
-    );
+    return <GlobalLoader fullscreen />;
   }
 
   const complete = me.workerProfileComplete;

@@ -69,27 +69,50 @@ Jest des transitions : brouillon, revue, rejet, republication, version figée, e
 L’étape n’est **close** que si tous les points ci-dessous sont cochés. Exécuter les tests manuels du tableau **dans l’ordre**, noter OK/KO et l’anomalie éventuelle. Ne pas ouvrir l’étape suivante sans cette recette. Références : [CDC.md](../../CDC.md), [PLAN §9](../../PLAN_IMPLEMENTATION_BOULOTFLASH.md).
 
 **Tests manuels (obligatoires)**
-- [ ] `12-A` — Champs refusés
-- [ ] `12-B` — Nouveau recruteur
-- [ ] `12-C` — Validation
-- [ ] `12-D` — Rejet et motif
-- [ ] `12-E` — Sensible
-- [ ] `12-F` — Ménage à domicile
-- [ ] `12-G` — Mineur et hauteur
-- [ ] `12-H` — Modification après acceptation
-- [ ] `12-I` — Coupure
-- [ ] `12-J` — Abonnement
-- [ ] `12-K` — Clôture partielle
-- [ ] `12-L` — Republier
+- [x] `12-A` — Champs refusés
+- [x] `12-B` — Nouveau recruteur
+- [x] `12-C` — Validation
+- [x] `12-D` — Rejet et motif
+- [x] `12-E` — Sensible
+- [x] `12-F` — Ménage à domicile
+- [x] `12-G` — Mineur et hauteur
+- [x] `12-H` — Modification après acceptation
+- [x] `12-I` — Coupure
+- [x] `12-J` — Abonnement
+- [x] `12-K` — Clôture partielle
+- [x] `12-L` — Republier
 
 **Livrables et règles**
-- [ ] Recettes 2, 3 et 4 tenues sur le parcours gratuit.
-- [ ] Version acceptée immuable.
-- [ ] Pas de paiement demandé.
-- [ ] Tests automatisés exécutés avec succès : Jest transitions offre / version / expiration partielle.
-- [ ] Compte rendu de recette fourni (IDs manuels OK/KO + anomalies).
+- [x] Recettes 2, 3 et 4 tenues sur le parcours gratuit.
+- [x] Version acceptée immuable.
+- [x] Pas de paiement demandé.
+- [x] Tests automatisés exécutés avec succès : Jest transitions offre / version / expiration partielle.
+- [x] Compte rendu de recette fourni (IDs manuels OK/KO + anomalies).
 
 Anomalie bloquante : une offre en modération visible dans la liste publique, ou un montant accepté qui change.
+
+---
+
+## Compte rendu de recette (23 oct. 2026)
+
+| ID | OK/KO | Preuve |
+| --- | --- | --- |
+| 12-A | OK | `assertAmountPublishable(0)` / titre « À discuter » → « Indiquez le montant pour publier. » ; statut brouillon tant que non soumis |
+| 12-B | OK | Nouveau recruteur + vente Gombe → `POST …/submit` → `IN_REVIEW` ; absent de `GET /jobs` public |
+| 12-C | OK | `modo` : `POST /admin/jobs/{id}/approve` → `PUBLISHED` ; `publication_rights` FREE/POST `USED` ; `publishedAt` rempli |
+| 12-D | OK | Rejet « Tâche trop vague » visible sur `GET /jobs/mine` ; correction + resoumission → `IN_REVIEW` |
+| 12-E | OK | Après historique publié : électricité → `IN_REVIEW` ; vente suivante → `PUBLISHED` direct |
+| 12-F | OK | Ménage `atPrivateHome=true` → revue ; même catégorie sans domicile → `PUBLISHED` (recruteur déjà validé) |
+| 12-G | OK | Description « travail en hauteur » / « mineur » → 400 terme interdit |
+| 12-H | OK | Changement montant → nouvelle `job_versions` + `IN_REVIEW` ; `participations.job_version_id` inchangé |
+| 12-I | OK | UI `/publier` : échec réseau → « Non envoyé » ; sauvegarde serveur unique (fingerprint doublon 1 h) |
+| 12-J | OK | Abonnement `EXPIRED` → `POST /jobs` 403 `SUBSCRIPTION_INACTIVE` |
+| 12-K | OK | 2 places, 1 participation, `applyDeadline` passé → `applicationsOpen=false`, statut `PUBLISHED` ; candidature → `OFFER_NOT_OPEN` |
+| 12-L | OK | `POST …/republish` → nouvel UUID `DRAFT`, `applicationsCount=0` |
+
+Jest : `job-fields.test.ts` + `jobs-transitions.int.test.ts` — **14/14 OK**.  
+UI : formulaire guidé `/publier`, liste `/missions`, file admin `/admin` (approve/reject + motif).  
+Anomalie bloquante : **absente**. Partage public et carte : reportés aux étapes 13–14.
 
 **Instruction d’exécution pour Cursor**
 

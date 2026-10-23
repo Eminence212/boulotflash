@@ -7,7 +7,7 @@ import { tokens } from '@/theme/tokens';
 /** Source unique du wordmark (public/). */
 export const BRAND_LOGO_SRC = '/logo/boulotflash.svg';
 
-export type BrandLogoSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+export type BrandLogoSize = 'sm' | 'md' | 'lg' | 'xl';
 
 /** Taille standard pages (auth, légal, accueil). */
 export const BRAND_LOGO_PAGE_SIZE: BrandLogoSize = 'md';
@@ -15,7 +15,6 @@ export const BRAND_LOGO_PAGE_SIZE: BrandLogoSize = 'md';
 type BrandLogoProps = {
   /**
    * Taille responsive du wordmark.
-   * - xs : header app (mobile, place limitée)
    * - sm : barre compacte / nav
    * - md : pages (défaut recommandé)
    * - lg / xl : hero large
@@ -31,7 +30,6 @@ type BrandLogoProps = {
 
 /** Largeurs visibles — viewBox recadré (~488×116). */
 const WIDTHS: Record<BrandLogoSize, string> = {
-  xs: 'clamp(108px, 30vw, 132px)',
   sm: 'clamp(140px, 38vw, 180px)',
   md: 'clamp(180px, 44vw, 240px)',
   lg: 'clamp(220px, 58vw, 300px)',

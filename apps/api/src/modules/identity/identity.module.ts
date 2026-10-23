@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { RedisCacheModule } from '../redis-cache/redis-cache.module';
 import { AccountResolverService } from './account-resolver.service';
 import { AdminAuthController } from './admin-auth/admin-auth.controller';
 import { AdminAuthGuard } from './admin-auth/admin-auth.guard';
@@ -24,6 +25,7 @@ import { SessionService } from './session.service';
 import { TokenBlacklistService } from './token-blacklist.service';
 
 @Module({
+  imports: [RedisCacheModule],
   controllers: [
     AuthController,
     MeController,

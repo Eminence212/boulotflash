@@ -4,6 +4,8 @@ export {
   createPrismaClient,
   type AvailabilitySlot,
   type EmployerType,
+  type JobStatus,
+  type Prisma,
   type PrismaClient,
 } from './client';
 export {

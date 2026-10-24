@@ -5,6 +5,11 @@ import { Anchor, Collapse, Group, Paper, Stack, Text } from '@mantine/core';
 import { IconMapPin } from '@tabler/icons-react';
 import { AppButton } from '@/components/feedback';
 import { apiFetch, readAccessToken } from '@/lib/api';
+import {
+  geolocationFailure,
+  geolocationFailureMessage,
+  readBrowserPosition,
+} from '@/lib/geolocation';
 import type { MeResponse } from '@/lib/me';
 import { tokens } from '@/theme/tokens';
 
@@ -21,17 +26,7 @@ function storageKey(token: string): string {
 }
 
 function readPosition(): Promise<GeolocationPosition> {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('unsupported'));
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: false,
-      maximumAge: 5 * 60_000,
-      timeout: 12_000,
-    });
-  });
+  return readBrowserPosition(5 * 60_000);
 }
 
 async function savePosition(
@@ -118,10 +113,10 @@ export function LocationConsent({ me, onChanged, prompt = true }: LocationConsen
       sessionStorage.setItem(storageKey(token), 'synced');
       setOpen(false);
       onChanged?.();
-    } catch {
+    } catch (err) {
       setBusy(false);
       setError(
-        'Le navigateur n’a pas transmis la position. Vous pouvez continuer sans.',
+        `${geolocationFailureMessage(geolocationFailure(err))} Vous pouvez aussi continuer sans.`,
       );
     }
   }

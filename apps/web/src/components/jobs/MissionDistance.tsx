@@ -2,8 +2,16 @@
 
 import { useState } from 'react';
 import { Stack, Text } from '@mantine/core';
-import { IconMapPin } from '@tabler/icons-react';
+import { IconMapPin, IconRefresh } from '@tabler/icons-react';
 import { AppButton } from '@/components/feedback';
+import {
+  canRetry,
+  geolocationFailure,
+  geolocationFailureMessage,
+  readBrowserPosition,
+  type GeolocationFailure,
+} from '@/lib/geolocation';
+import { tokens } from '@/theme/tokens';
 import { distanceLabelFromFix, type LatLng } from './mission-distance';
 
 type Props = {
@@ -11,56 +19,77 @@ type Props = {
   longitude?: number | null;
 };
 
+type State =
+  | { kind: 'idle' }
+  | { kind: 'locating' }
+  | { kind: 'located'; label: string }
+  | { kind: 'failed'; failure: GeolocationFailure };
+
 /**
  * Un clic, un calcul local. Les coordonnées du visiteur ne partent pas vers l’API.
+ * Un échec temporaire de l’appareil se réessaie ; un refus renvoie aux réglages du navigateur.
  */
 export function MissionDistance({ latitude, longitude }: Props) {
   const target: LatLng | null =
-    latitude == null || longitude == null
-      ? null
-      : { latitude, longitude };
-  const [label, setLabel] = useState(() => distanceLabelFromFix(null, target));
-  const [asked, setAsked] = useState(false);
+    latitude == null || longitude == null ? null : { latitude, longitude };
+  const [state, setState] = useState<State>({ kind: 'idle' });
 
-  function onLocate() {
-    if (asked) return;
-    setAsked(true);
-    if (!target || typeof navigator === 'undefined' || !navigator.geolocation) {
-      setLabel(distanceLabelFromFix(null, target));
-      return;
+  async function onLocate() {
+    if (!target || state.kind === 'locating') return;
+    setState({ kind: 'locating' });
+    try {
+      const pos = await readBrowserPosition(300_000);
+      setState({
+        kind: 'located',
+        label: distanceLabelFromFix(
+          { latitude: pos.coords.latitude, longitude: pos.coords.longitude },
+          target,
+        ),
+      });
+    } catch (err) {
+      setState({ kind: 'failed', failure: geolocationFailure(err) });
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLabel(
-          distanceLabelFromFix(
-            {
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-            },
-            target,
-          ),
-        );
-      },
-      () => setLabel('position non partagée'),
-      { enableHighAccuracy: false, maximumAge: 300_000, timeout: 12_000 },
+  }
+
+  if (!target) {
+    return (
+      <Text size="sm" c="dimmed">
+        {distanceLabelFromFix(null, null)}
+      </Text>
     );
   }
 
+  const failed = state.kind === 'failed' ? state.failure : null;
+  const retry = failed !== null && canRetry(failed);
+
   return (
     <Stack gap={6}>
-      <Text size="sm" c="dimmed" aria-live="polite">
-        {label}
-      </Text>
-      <AppButton
-        variant="light"
+      <Text
         size="sm"
-        w="fit-content"
-        leftSection={<IconMapPin size={16} stroke={1.75} />}
-        onClick={onLocate}
-        disabled={asked}
+        aria-live="polite"
+        c={failed ? tokens.color.status.alerte.fg : state.kind === 'located' ? undefined : 'dimmed'}
+        fw={state.kind === 'located' ? 600 : undefined}
       >
-        Ma position
-      </AppButton>
+        {state.kind === 'located'
+          ? state.label
+          : failed
+            ? geolocationFailureMessage(failed)
+            : 'Distance depuis votre position, calculée sur cet appareil.'}
+      </Text>
+      {state.kind !== 'located' && (failed === null || retry) ? (
+        <AppButton
+          variant="light"
+          size="sm"
+          w="fit-content"
+          loading={state.kind === 'locating'}
+          leftSection={
+            retry ? <IconRefresh size={16} stroke={1.75} /> : <IconMapPin size={16} stroke={1.75} />
+          }
+          onClick={() => void onLocate()}
+        >
+          {retry ? 'Réessayer' : 'Ma position'}
+        </AppButton>
+      ) : null}
     </Stack>
   );
 }

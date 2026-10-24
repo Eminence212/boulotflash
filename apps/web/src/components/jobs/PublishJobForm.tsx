@@ -22,6 +22,7 @@ import { IconCalendar } from '@tabler/icons-react';
 import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import { tokens } from '@/theme/tokens';
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
+import { JobStatusNotice, reviewReasonsFor } from '@/components/jobs/JobStatusNotice';
 import { apiFetch, readAccessToken } from '@/lib/api';
 import {
   centsToMajor,
@@ -395,6 +396,11 @@ export function PublishJobForm({ initialJobId = null }: PublishJobFormProps) {
   const editable =
     !status || status === 'DRAFT' || status === 'REJECTED' || status === 'PUBLISHED';
   const dateDropdown = isMobile ? 'modal' : 'popover';
+  const reviewReasons = reviewReasonsFor(
+    categories.find((category) => category.id === form.values.categoryId),
+    form.values.atPrivateHome,
+  );
+  const firstSubmission = !status || status === 'DRAFT' || status === 'REJECTED';
 
   function setWhen(field: 'startAt' | 'applyDeadline' | 'selectionDeadline') {
     return (value: string | Date | null) => {
@@ -411,8 +417,14 @@ export function PublishJobForm({ initialJobId = null }: PublishJobFormProps) {
         minHeight: 0,
       }}
     >
-    <Stack gap="md" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-      {status ? (
+    <Stack
+      gap="md"
+      className={editable ? undefined : 'bf-form-locked'}
+      style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
+    >
+      {status && !editable ? (
+        <JobStatusNotice status={status} reviewReasons={reviewReasons} />
+      ) : status ? (
         <Group gap="sm">
           <StatusBadge tone={jobStatusTone(status)}>
             {jobStatusLabel(status)}
@@ -696,6 +708,12 @@ export function PublishJobForm({ initialJobId = null }: PublishJobFormProps) {
             background: tokens.color.surface.card,
           }}
         >
+          {firstSubmission && reviewReasons.length > 0 ? (
+            <Text size="xs" c="dimmed" mb="xs">
+              Cette offre sera vérifiée par l’équipe avant publication (
+              {reviewReasons.join(' ; ')}).
+            </Text>
+          ) : null}
           <Group grow>
             <AppButton
               variant="default"
@@ -716,10 +734,19 @@ export function PublishJobForm({ initialJobId = null }: PublishJobFormProps) {
           </Group>
         </Box>
       ) : (
-        <AppAlert tone="info" title="Lecture seule">
-          Cette offre ne peut pas être modifiée dans son état actuel (
-          {jobStatusLabel(status ?? '')}).
-        </AppAlert>
+        <Box
+          style={{
+            flexShrink: 0,
+            marginTop: 12,
+            paddingTop: 12,
+            paddingBottom: 'max(0px, env(safe-area-inset-bottom))',
+            borderTop: `1px solid ${tokens.color.border.subtle}`,
+          }}
+        >
+          <AppButton variant="default" fullWidth onClick={() => router.push('/missions')}>
+            Retour à mes missions
+          </AppButton>
+        </Box>
       )}
     </Box>
   );

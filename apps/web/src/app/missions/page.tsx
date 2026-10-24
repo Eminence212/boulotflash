@@ -181,7 +181,12 @@ export default function MissionsPage() {
                 {job.rejectionReason}
               </AppAlert>
             ) : null}
-            {!SHAREABLE.has(job.status) ? (
+            {job.status === 'IN_REVIEW' ? (
+              <Text size="sm" c={tokens.color.status.attente.fg}>
+                En attente de vérification par l’équipe BoulotFlash. Rien à faire
+                de votre côté : elle sera publiée ou refusée avec un motif.
+              </Text>
+            ) : !SHAREABLE.has(job.status) ? (
               <Text size="xs" c="dimmed">
                 Partager indisponible tant que l’offre n’est pas publiée.
               </Text>

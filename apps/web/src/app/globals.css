@@ -206,3 +206,19 @@ body {
     animation: none;
   }
 }
+
+/* Offre verrouillée : champs lisibles (texte foncé), sans faire croire qu’on peut les modifier. */
+.bf-form-locked .mantine-Input-input:disabled,
+.bf-form-locked .mantine-Input-input[data-disabled] {
+  opacity: 1;
+  color: var(--color-ink, #0b1220);
+  -webkit-text-fill-color: var(--color-ink, #0b1220);
+  background: #f0f5fa;
+  border-color: transparent;
+  cursor: default;
+}
+
+.bf-form-locked .mantine-Switch-root[data-disabled],
+.bf-form-locked .mantine-SegmentedControl-root[data-disabled] {
+  opacity: 0.85;
+}

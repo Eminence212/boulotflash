@@ -17,6 +17,7 @@ import {
   disableCurrentLocation,
   LocationConsent,
 } from '@/components/layout/LocationConsent';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 import { SessionAuthButton } from '@/components/layout/SessionAuthButton';
 import { performLogout } from '@/hooks/useMe';
 import type { MeResponse } from '@/lib/me';
@@ -163,6 +164,7 @@ export function AppShellLayout({
               <BrandLogo size="sm" href="/" />
             </Box>
             <Group gap={8} wrap="nowrap" justify="flex-end" style={{ flexShrink: 0 }}>
+              {loggedIn && me ? <NotificationBell /> : null}
               {loggedIn && me ? (
                 <AccountMenu
                   me={{

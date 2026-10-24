@@ -206,11 +206,12 @@ export function AppShellLayout({
       <Container
         size={640}
         px={{ base: 'md', sm: 'xl' }}
-        py="md"
+        pt="md"
         style={{
           flex: 1,
           width: '100%',
-          paddingBottom: 'var(--bf-tabbar)',
+          // Pas de `py` ici : Mantine écraserait cette réserve pour la barre du bas.
+          paddingBottom: 'calc(var(--bf-tabbar) + 1rem)',
         }}
       >
         {loggedIn && me ? (

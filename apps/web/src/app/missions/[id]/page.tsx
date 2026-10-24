@@ -9,6 +9,10 @@ import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import { AppChip } from '@/components/boulotflash/AppChip';
 import { JobPostHeader } from '@/components/boulotflash/JobPostHeader';
 import { MissionDistance } from '@/components/jobs/MissionDistance';
+import {
+  MyApplicationCard,
+  type MyApplication,
+} from '@/components/jobs/MyApplicationCard';
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
 import { AppShellLayout } from '@/components/layout/AppShellLayout';
 import { PageActions } from '@/components/layout/PageActions';
@@ -51,17 +55,23 @@ export default function MissionPublicPage({
   const [job, setJob] = useState<PublicDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [shareMsg, setShareMsg] = useState<string | null>(null);
-  const [applyMsg, setApplyMsg] = useState<string | null>(null);
-  const [applyTone, setApplyTone] = useState<'info' | 'success' | 'error'>('info');
+  const [applyError, setApplyError] = useState<string | null>(null);
+  const [cardFeedback, setCardFeedback] = useState<{
+    tone: 'success' | 'info' | 'error';
+    text: string;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmAvailable, setConfirmAvailable] = useState(false);
   const [note, setNote] = useState('');
-  const [mine, setMine] = useState<{
-    id: string;
-    status: string;
-    statusLabel: string;
-  } | null>(null);
+  const [mine, setMine] = useState<MyApplication | null>(null);
   const idempotencyKey = useRef<string | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Après l’envoi, la confirmation doit être sous les yeux, pas sous la barre.
+  useEffect(() => {
+    if (cardFeedback?.tone !== 'success') return;
+    cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [cardFeedback]);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,9 +98,10 @@ export default function MissionPublicPage({
   }, [id]);
 
   function fetchMine(token: string) {
-    return apiFetch<{
-      application: { id: string; status: string; statusLabel: string } | null;
-    }>(`/jobs/${id}/my-application`, { accessToken: token });
+    return apiFetch<{ application: MyApplication | null }>(
+      `/jobs/${id}/my-application`,
+      { accessToken: token },
+    );
   }
 
   useEffect(() => {
@@ -133,7 +144,8 @@ export default function MissionPublicPage({
 
   async function onApply() {
     if (!confirmAvailable || mine) return;
-    setApplyMsg(null);
+    setApplyError(null);
+    setCardFeedback(null);
     const token = readAccessToken();
     if (!token) {
       window.location.assign(`/connexion?next=/missions/${id}`);
@@ -147,7 +159,6 @@ export default function MissionPublicPage({
         code?: string;
         id?: string;
         status?: string;
-        statusLabel?: string;
       }>(`/jobs/${id}/applications`, {
         method: 'POST',
         accessToken: token,
@@ -159,36 +170,49 @@ export default function MissionPublicPage({
       });
       if (status === 201) {
         idempotencyKey.current = null;
-        setApplyTone('success');
-        setApplyMsg(data.message ?? 'Candidature envoyée');
-        setMine({
-          id: data.id ?? '',
-          status: data.status ?? 'SUBMITTED',
-          statusLabel: 'Soumise',
+        const { data: current } = await fetchMine(token).catch(() => ({
+          data: { application: null },
+        }));
+        setMine(
+          current.application ?? {
+            id: data.id ?? '',
+            status: data.status ?? 'SUBMITTED',
+            statusLabel: 'Soumise',
+            appliedAt: new Date().toISOString(),
+          },
+        );
+        setCardFeedback({
+          tone: 'success',
+          text: data.message ?? 'Candidature envoyée',
         });
         return;
       }
-      setApplyTone(data.code === 'ALREADY_APPLIED' ? 'info' : 'error');
-      setApplyMsg(data.message ?? 'Candidature impossible.');
       if (data.code === 'ALREADY_APPLIED') {
         // Statut réel (ex. « Retirée ») plutôt qu’un « Soumise » supposé.
         const { data: current } = await fetchMine(token);
-        if (current.application) setMine(current.application);
+        if (current.application) {
+          setMine(current.application);
+          setCardFeedback({
+            tone: 'info',
+            text: data.message ?? 'Vous avez déjà postulé à cette mission.',
+          });
+          return;
+        }
       }
+      setApplyError(data.message ?? 'Candidature impossible.');
     } catch {
-      setApplyTone('error');
-      setApplyMsg('Non envoyé');
+      setApplyError('Non envoyé. Vérifiez votre connexion puis réessayez.');
     } finally {
       setBusy(false);
     }
   }
 
-  async function onWithdraw() {
-    if (!mine?.id) return;
+  async function onWithdraw(): Promise<boolean> {
+    if (!mine?.id) return false;
     const token = readAccessToken();
-    if (!token) return;
+    if (!token) return false;
     setBusy(true);
-    setApplyMsg(null);
+    setCardFeedback(null);
     try {
       const { status, data } = await apiFetch<{
         message?: string;
@@ -199,20 +223,25 @@ export default function MissionPublicPage({
         accessToken: token,
       });
       if (status >= 400) {
-        setApplyTone('error');
-        setApplyMsg(data.message ?? 'Retrait impossible.');
-        return;
+        setCardFeedback({
+          tone: 'error',
+          text: data.message ?? 'Retrait impossible.',
+        });
+        return true;
       }
       setMine({
-        id: mine.id,
+        ...mine,
         status: data.status ?? 'WITHDRAWN',
         statusLabel: data.statusLabel ?? 'Retirée',
       });
-      setApplyTone('info');
-      setApplyMsg(data.message ?? 'Candidature retirée');
+      // Le badge « Retirée » et l’explication de la carte suffisent.
+      return true;
     } catch {
-      setApplyTone('error');
-      setApplyMsg('Non envoyé');
+      setCardFeedback({
+        tone: 'error',
+        text: 'Non envoyé. Vérifiez votre connexion puis réessayez.',
+      });
+      return true;
     } finally {
       setBusy(false);
     }
@@ -252,6 +281,16 @@ export default function MissionPublicPage({
                 {jobStatusLabel(job.status)}
               </StatusBadge>
             </Group>
+
+            {mine ? (
+              <MyApplicationCard
+                ref={cardRef}
+                application={mine}
+                feedback={cardFeedback}
+                busy={busy}
+                onWithdraw={onWithdraw}
+              />
+            ) : null}
 
             {job.closedMessage ? (
               <AppAlert tone="warning" title="Candidatures closes">
@@ -330,11 +369,6 @@ export default function MissionPublicPage({
                 {shareMsg}
               </AppAlert>
             ) : null}
-            {applyMsg ? (
-              <AppAlert tone={applyTone} title="Candidature">
-                {applyMsg}
-              </AppAlert>
-            ) : null}
 
             <Stack gap="sm">
               <Group grow>
@@ -358,41 +392,11 @@ export default function MissionPublicPage({
                   Copier
                 </AppButton>
               </Group>
-              {mine ? (
-                <PageActions>
-                  <Stack gap="xs">
-                    <Text size="sm" fw={600}>
-                      Statut : {mine.statusLabel}
-                    </Text>
-                    <Group grow>
-                      {mine.status === 'SUBMITTED' ||
-                      mine.status === 'SHORTLISTED' ? (
-                        <AppButton
-                          variant="default"
-                          loading={busy}
-                          onClick={() => void onWithdraw()}
-                        >
-                          Retirer
-                        </AppButton>
-                      ) : null}
-                      <AppButton color="flash" disabled>
-                        Déjà postulé
-                      </AppButton>
-                    </Group>
-                  </Stack>
-                </PageActions>
-              ) : job.applicationsOpen && !isEmployerMode(me) ? (
-                <Stack gap="sm">
-                  <Checkbox
-                    checked={confirmAvailable}
-                    onChange={(event) =>
-                      setConfirmAvailable(event.currentTarget.checked)
-                    }
-                    label="Je confirme être disponible pour cette mission"
-                  />
+              {mine ? null : job.applicationsOpen && !isEmployerMode(me) ? (
+                <>
                   <Textarea
-                    label="Message"
-                    placeholder="Facultatif"
+                    label="Message au recruteur"
+                    description="Facultatif · 500 caractères au plus"
                     maxLength={500}
                     value={note}
                     onChange={(event) => setNote(event.currentTarget.value)}
@@ -400,17 +404,31 @@ export default function MissionPublicPage({
                     minRows={2}
                   />
                   <PageActions>
-                    <AppButton
-                      color="flash"
-                      fullWidth
-                      loading={busy}
-                      disabled={!confirmAvailable}
-                      onClick={() => void onApply()}
-                    >
-                      Postuler
-                    </AppButton>
+                    <Stack gap="xs">
+                      {applyError ? (
+                        <Text size="sm" fw={600} c={tokens.color.semantic.danger} role="alert">
+                          {applyError}
+                        </Text>
+                      ) : null}
+                      <Checkbox
+                        checked={confirmAvailable}
+                        onChange={(event) =>
+                          setConfirmAvailable(event.currentTarget.checked)
+                        }
+                        label="Je confirme être disponible pour cette mission"
+                      />
+                      <AppButton
+                        color="flash"
+                        fullWidth
+                        loading={busy}
+                        disabled={!confirmAvailable}
+                        onClick={() => void onApply()}
+                      >
+                        Postuler
+                      </AppButton>
+                    </Stack>
                   </PageActions>
-                </Stack>
+                </>
               ) : (
                 <PageActions>
                   <AppButton color="flash" fullWidth disabled>

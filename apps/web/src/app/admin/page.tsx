@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Container,
   Group,
+  NumberInput,
   Stack,
   Text,
   Textarea,
@@ -32,6 +33,91 @@ type QueueItem = {
   category: { name: string; isSensitive: boolean; sensitiveIfHome: boolean };
   commune: { name: string };
 };
+
+type ReminderSetting = { reminderHoursBefore: number; reminderHoursMin: number; reminderHoursMax: number };
+
+/** Délai du rappel de mission in-app (D16), réglé dans `platform_settings` par un super-admin. */
+function ReminderSettingCard() {
+  const [setting, setSetting] = useState<ReminderSetting | null>(null);
+  const [hours, setHours] = useState<number | string>('');
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ tone: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    void adminFetch<ReminderSetting & { message?: string }>('/admin/settings').then(({ status, data }) => {
+      if (status >= 400) {
+        setMessage({ tone: 'error', text: data.message ?? 'Réglages inaccessibles.' });
+        return;
+      }
+      setSetting(data);
+      setHours(data.reminderHoursBefore);
+    });
+  }, []);
+
+  async function save() {
+    setSaving(true);
+    setMessage(null);
+    const { status, data } = await adminFetch<{ reminderHoursBefore?: number; message?: string }>(
+      '/admin/settings/reminder-hours',
+      { method: 'PATCH', body: { hours: Number(hours) } },
+    );
+    setSaving(false);
+    if (status >= 400 || data.reminderHoursBefore === undefined) {
+      setMessage({ tone: 'error', text: data.message ?? 'Enregistrement impossible.' });
+      return;
+    }
+    const saved = data.reminderHoursBefore;
+    setSetting((prev) => (prev ? { ...prev, reminderHoursBefore: saved } : prev));
+    setMessage({ tone: 'success', text: `Rappel envoyé ${saved} h avant le début des missions.` });
+  }
+
+  return (
+    <Stack
+      gap="sm"
+      p="md"
+      style={{
+        border: `1px solid ${tokens.color.border.subtle}`,
+        borderRadius: 12,
+        background: tokens.color.surface.card,
+      }}
+    >
+      <Text size="xs" fw={700} tt="uppercase" c="dimmed" style={{ letterSpacing: '0.04em' }}>
+        Réglages · rappel de mission
+      </Text>
+      <Text size="sm" c="dimmed">
+        Les deux parties d’une participation confirmée reçoivent un rappel dans l’application, ce nombre
+        d’heures avant le début. Hypothèse D16 : 3 h, non validée.
+      </Text>
+      {setting ? (
+        <Group align="flex-end" gap="sm" wrap="nowrap">
+          <NumberInput
+            label="Heures avant le début"
+            value={hours}
+            onChange={setHours}
+            min={setting.reminderHoursMin}
+            max={setting.reminderHoursMax}
+            allowDecimal={false}
+            clampBehavior="strict"
+            w={180}
+          />
+          <AppButton
+            color="flash"
+            loading={saving}
+            disabled={Number(hours) === setting.reminderHoursBefore}
+            onClick={() => void save()}
+          >
+            Enregistrer
+          </AppButton>
+        </Group>
+      ) : null}
+      {message ? (
+        <AppAlert tone={message.tone} title="Rappel de mission">
+          {message.text}
+        </AppAlert>
+      ) : null}
+    </Stack>
+  );
+}
 
 export default function AdminHomePage() {
   const router = useRouter();
@@ -155,6 +241,8 @@ export default function AdminHomePage() {
             {error}
           </AppAlert>
         ) : null}
+
+        {scope === 'SUPER' ? <ReminderSettingCard /> : null}
 
         {canModerate ? (
           <Stack gap="md">

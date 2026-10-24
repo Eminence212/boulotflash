@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Group, Stack, Text, ThemeIcon, UnstyledButton } from '@mantine/core';
 import {
+  IconAlarm,
   IconAlertTriangle,
   IconBell,
   IconBriefcase,
@@ -43,6 +44,7 @@ const ICONS: Record<string, { icon: Icon; color: string }> = {
   participation_cancelled: { icon: IconAlertTriangle, color: 'red' },
   job_changed: { icon: IconPencil, color: 'orange' },
   job_suspended: { icon: IconAlertTriangle, color: 'red' },
+  mission_reminder: { icon: IconAlarm, color: 'flash' },
 };
 
 /** Centre de notifications in-app (étape 18) : seul canal métier au pilote, lu / non lu. */
@@ -96,7 +98,7 @@ export default function NotificationsPage() {
           description={
             data.items.length > 0
               ? `${unreadLabel(data.unreadCount)}. Touchez une notification pour ouvrir l’écran concerné.`
-              : 'Candidatures, propositions, acceptations et missions qui vous correspondent arrivent ici.'
+              : 'Candidatures, propositions, acceptations, rappels de mission et missions qui vous correspondent arrivent ici.'
           }
         />
 

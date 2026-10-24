@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import * as argon2 from 'argon2';
-import type { AuthProvider, PrismaClient } from '@prisma/client';
+import type { AuthProvider, Prisma, PrismaClient } from '@prisma/client';
 import {
   SIMULATED_PRIVATE_ADDRESS,
   SIMULATED_PUBLIC_LANDMARK,
@@ -606,4 +606,120 @@ export async function seedDemoAccounts(prisma: PrismaClient): Promise<void> {
       }
     }
   }
+  await seedSelectionFixtures(prisma, {
+    ngaliemaId: ngaliema.id,
+    gombeId: gombe.id,
+    demenagementId: catDemo.id,
+    cAId: cA.id,
+    cBId: cB.id,
+    cCompletId: cComplet.id,
+  });
+
+}
+
+/**
+ * Fixtures de l’étape 16 (jeux-de-donnees.md) — seulement avec SEED_DEMO.
+ * Idempotent : rien de ce qui existe déjà n’est réinitialisé, pour ne pas effacer une recette en cours.
+ *  - J-PUB-UNIQUE : R-2, 1 place, déménagement, Ngaliema ; candidatures SUBMITTED de C-A et C-B.
+ *  - C-COMPLET : candidature SUBMITTED sur J-PUB-1.
+ *  - J-PROCHE : R-2, 1 place, clôture des sélections dans 30 minutes (cas D04), recalée à chaque
+ *    amorçage tant qu’aucune proposition n’existe.
+ */
+async function seedSelectionFixtures(
+  prisma: PrismaClient,
+  ids: {
+    ngaliemaId: string;
+    gombeId: string;
+    demenagementId: string;
+    cAId: string;
+    cBId: string;
+    cCompletId: string;
+  },
+): Promise<void> {
+  const r2 = await prisma.authIdentity.findFirst({
+    where: { provider: 'facebook', providerUserId: 'fb-sub-r2' },
+  });
+  const catService = await prisma.category.findFirst({
+    where: { slug: 'service-plonge-et-cuisine' },
+  });
+  if (!r2 || !catService) return;
+  const DAY = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+
+  async function ensureJob(title: string, data: Omit<Prisma.JobUncheckedCreateInput, 'employerId' | 'title'>) {
+    const existing = await prisma.job.findFirst({ where: { title } });
+    if (existing) return existing;
+    return prisma.job.create({ data: { ...data, employerId: r2!.userId, title } });
+  }
+
+  async function ensureApplication(jobId: string, workerId: string, job: { amount: number; currency: 'USD' | 'CDF'; payUnit: 'MISSION' | 'HOUR' | 'DAY' }, communeName: string) {
+    await prisma.application.upsert({
+      where: { jobId_workerId: { jobId, workerId } },
+      create: {
+        jobId,
+        workerId,
+        status: 'SUBMITTED',
+        amount: job.amount,
+        currency: job.currency,
+        payUnit: job.payUnit,
+        communeName,
+      },
+      update: {},
+    });
+  }
+
+  const unique = await ensureJob('J-PUB-UNIQUE — Déménagement Ngaliema', {
+    description: 'Offre démo de concurrence : une seule place (recette 16-H).',
+    categoryId: ids.demenagementId,
+    communeId: ids.ngaliemaId,
+    publicLandmark: 'rond-point Ngaliema',
+    addressPrivate: '5 avenue de test, Ngaliema',
+    startAt: new Date(now + 7 * DAY),
+    durationHours: 3,
+    workersNeeded: 1,
+    amount: 2000,
+    currency: 'USD',
+    payUnit: 'MISSION',
+    payChannel: 'CASH',
+    applyDeadline: new Date(now + 5 * DAY),
+    selectionDeadline: new Date(now + 6 * DAY),
+    status: 'PUBLISHED',
+    publishedAt: new Date(),
+  });
+  await ensureApplication(unique.id, ids.cAId, unique, 'Ngaliema');
+  await ensureApplication(unique.id, ids.cBId, unique, 'Ngaliema');
+
+  const pub1 = await prisma.job.findFirst({ where: { title: { startsWith: 'J-PUB-1' } } });
+  if (pub1) await ensureApplication(pub1.id, ids.cCompletId, pub1, 'Gombe');
+
+  const proche = await ensureJob('J-PROCHE — Service, clôture proche', {
+    description: 'Offre démo D04 : clôture des sélections dans 30 minutes.',
+    categoryId: catService.id,
+    communeId: ids.gombeId,
+    publicLandmark: 'près du marché',
+    addressPrivate: '12 avenue de test, Gombe',
+    startAt: new Date(now + 2 * 60 * 60 * 1000),
+    durationHours: 2,
+    workersNeeded: 1,
+    amount: 1000,
+    currency: 'USD',
+    payUnit: 'MISSION',
+    payChannel: 'CASH',
+    applyDeadline: new Date(now + 20 * 60 * 1000),
+    selectionDeadline: new Date(now + 30 * 60 * 1000),
+    status: 'PUBLISHED',
+    publishedAt: new Date(),
+  });
+  const procheOffers = await prisma.selectionOffer.count({ where: { application: { jobId: proche.id } } });
+  if (procheOffers === 0) {
+    await prisma.job.update({
+      where: { id: proche.id },
+      data: {
+        startAt: new Date(now + 2 * 60 * 60 * 1000),
+        applyDeadline: new Date(now + 20 * 60 * 1000),
+        selectionDeadline: new Date(now + 30 * 60 * 1000),
+      },
+    });
+  }
+  await ensureApplication(proche.id, ids.cAId, proche, 'Gombe');
 }

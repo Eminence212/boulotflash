@@ -69,27 +69,58 @@ Jest avec transactions parallèles sur Postgres pour 16-H et 16-J. Test d’expi
 L’étape n’est **close** que si tous les points ci-dessous sont cochés. Exécuter les tests manuels du tableau **dans l’ordre**, noter OK/KO et l’anomalie éventuelle. Ne pas ouvrir l’étape suivante sans cette recette. Références : [CDC.md](../../CDC.md), [PLAN §9](../../PLAN_IMPLEMENTATION_BOULOTFLASH.md).
 
 **Tests manuels (obligatoires)**
-- [ ] `16-A` — Présélection
-- [ ] `16-B` — Proposition
-- [ ] `16-C` — Numéro caché
-- [ ] `16-D` — Acceptation
-- [ ] `16-E` — Déclin
-- [ ] `16-F` — Expiration
-- [ ] `16-G` — Moins de 2 heures
-- [ ] `16-H` — Concurrence des propositions
-- [ ] `16-I` — Double acceptation
-- [ ] `16-J` — Capacité par fixture illégale
-- [ ] `16-K` — Autre recruteur
-- [ ] `16-L` — Pourvue
+- [x] `16-A` — Présélection
+- [x] `16-B` — Proposition
+- [x] `16-C` — Numéro caché
+- [x] `16-D` — Acceptation
+- [x] `16-E` — Déclin
+- [x] `16-F` — Expiration
+- [x] `16-G` — Moins de 2 heures
+- [x] `16-H` — Concurrence des propositions
+- [x] `16-I` — Double acceptation
+- [x] `16-J` — Capacité par fixture illégale
+- [x] `16-K` — Autre recruteur
+- [x] `16-L` — Pourvue
 
 **Livrables et règles**
-- [ ] Recettes 6, 7 et 9.
-- [ ] Invariant de réservation expliqué et prouvé.
-- [ ] Aucune adresse dans les réponses de cette étape.
-- [ ] Tests automatisés exécutés avec succès : Jest concurrence (16-H/J), expiration, acceptation.
-- [ ] Compte rendu de recette fourni (IDs manuels OK/KO + anomalies).
+- [x] Recettes 6, 7 et 9 (9 : partie étape 16 = 16-K ; 17-I relève de l’étape 17).
+- [x] Invariant de réservation expliqué et prouvé.
+- [x] Aucune adresse dans les réponses de cette étape.
+- [x] Tests automatisés exécutés avec succès : Jest concurrence (16-H/J), expiration, acceptation.
+- [x] Compte rendu de recette fourni (IDs manuels OK/KO + anomalies).
 
 Anomalie bloquante : deux participations au-delà de `workers_needed`, ou une présélection qui réserve.
+
+**Compte rendu de recette — 24 octobre 2026**
+
+Pile Docker locale (`docker compose --env-file .env.development`), API, worker et web reconstruits, migration `20261024100000_selection_offers_concurrency` appliquée.
+
+*Comptes.* Les comptes démo nommés (`R-2`, `C-COMPLET`, `C-A`…) sont semés mais ne peuvent pas se connecter : OAuth réel uniquement, aucun jeton `demo:` (D34). La recette manuelle a donc été jouée dans le navigateur avec des comptes équivalents créés par `POST /auth/dev-session` (hook de test) et configurés comme les fixtures : recruteur « Boutique (R-2 recette) » abonnement `ACTIVE`, recruteur « Restaurant (R-1 recette) », candidats complets Grâce (C-COMPLET), Patrick (C-A), Sarah (C-B), plus Jonas, Merveille et Fiston pour les déclin, expiration et capacité. Offres : `J-PUB-1 (recette 16)` 2 places, `J-PUB-UNIQUE (recette 16)` 1 place, `J-PROCHE (recette 16)` clôture à 30 min. Les fixtures nommées de `jeux-de-donnees.md` sont aussi semées (`J-PUB-UNIQUE`, `J-PROCHE`, candidatures de C-A, C-B, C-COMPLET).
+
+| ID | Attendu | Observé | Statut |
+| --- | --- | --- | --- |
+| 16-A | « Présélectionnée », places inchangées, aucune ligne `selection_offers` | Badge « Présélectionnée », « 2 places libres sur 2 », base : `SHORTLISTED`, 0 proposition | OK |
+| 16-B | Échéance visible, places −1, `PENDING` | « Réponse attendue avant sam. 24 oct., 11:58 (dans 2 h) », « 1 place libre sur 2 », base `PENDING` 11:58 | OK |
+| 16-C | Pas de `+243`, JSON recruteur sans `phone` | Page sans numéro ; JSON : 0 clé `phone`, 0 `+243`, 0 adresse ; candidat = `availability, commune, displayName, isAvailable, phoneBadge, skills` | OK |
+| 16-D | Participation confirmée, réservation non comptée en plus | « Votre place est confirmée », « 1 place restante sur 2 » ; `occupied` = 1 avant et 1 après ; 1 participation, offre et candidature `ACCEPTED`, aucune adresse | OK |
+| 16-E | Place à nouveau proposable, « Déclinée » | Badge « Déclinée » ; places 0 → 1 ; base `DECLINED/DECLINED` | OK |
+| 16-F | « Cette proposition a expiré. », place libre, `EXPIRED` | Horloge de test avancée après l’échéance, clic Accepter : message affiché, place libérée ; offre et candidature `EXPIRED` (expirées par l’acceptation, avant tout worker) ; balayage ensuite sans doublon (1 notification de proposition, 2 d’expiration) | OK |
+| 16-G | `PROPOSAL_TOO_SHORT`, aucune réservation ; D04 non validé | Message D04 affiché, places inchangées ; API 409 `PROPOSAL_TOO_SHORT` ; 0 proposition ; colonne de validation de D04 vide dans le registre | OK |
+| 16-H | Une 201, une 409 « Il n'y a plus de place à réserver. », 1 `PENDING` | Deux onglets du recruteur, confirmations envoyées l’une après l’autre à quelques ms : une 201, une 409 avec le message exact ; puis deux `curl` réellement parallèles, deux clés, sur `J-PUB-UNIQUE-2` : 201 + 409 `SLOT_FULL` ; `count PENDING` = 1 dans les deux cas | OK |
+| 16-I | Une participation | Double clic : une seule requête envoyée (garde de l’interface) ; puis deux `curl` parallèles même clé, un rejeu même clé, une autre clé : quatre 200, même `participationId` ; 1 participation | OK |
+| 16-J | Une transaction gagne, l’autre 409 `SLOT_FULL`, pas deux participations | Fixture SQL ci-dessous, deux acceptations `curl` parallèles : 200 + 409 `SLOT_FULL` ; 1 participation ; offre `FILLED` | OK |
+| 16-K | 404 | `R-1` : `GET /jobs/{id}/applications` → 404 `NOT_FOUND`, action → 404 ; écran « Offre introuvable. », aucun candidat | OK |
+| 16-L | « Pourvue », plus de candidature | Badge « Pourvue » (Mes missions, détail), « 0 places restantes sur 2 », « Candidatures closes » ; base `FILLED`, `workers_needed` = 2, 2 participations ; candidature d’un tiers → 409 `OFFER_NOT_OPEN` | OK |
+
+*Recettes.* 6 (acceptations simultanées) : 16-H, 16-I, 16-J OK. 7 (proposition expirée) : 16-F OK ; worker vérifié sur la pile : le job BullMQ programmé à la création d’une proposition (`expire-{id}`, état `delayed`) a été avancé, le worker l’a traité (`completed`, `expired: true`), offre et candidature `EXPIRED`, place libérée, 2 notifications d’expiration. 9 : partie 16-K OK ; 17-I relève de l’étape 17.
+
+*Fixture SQL de 16-J (test uniquement).* Le parcours normal ne peut pas créer deux `PENDING` pour une place : la proposition refuse (`SLOT_FULL`) et l’index partiel `selection_offers_one_pending_per_application` bloque même la seconde sur une même candidature. Après une proposition légale à C-B, on insère, dans la base de test, une seconde proposition `PENDING` pour C-D en copiant `job_version_id` et `expires_at`, puis on passe sa candidature à `OFFERED`. Ce script n’existe que dans la recette et dans `selection.int.test.ts` ; il ne doit jamais être joué hors environnement de test.
+
+*Invariant et recomptage.* `occupées = propositions PENDING non expirées + participations status <> CANCELLED` (D03), calculé sous `SELECT … FOR UPDATE` sur la ligne `jobs` pour proposer. À l’acceptation, le recomptage porte sur les participations non annulées. Point à valider : appliqué à la lettre sur la fixture illégale de 16-J, l’invariant complet ferait échouer les **deux** acceptations (la participation de A plus la réservation encore `PENDING` de B dépassent la capacité), alors que ce document et BF-SEL-03 attendent une réussite et un `SLOT_FULL`. Dans tout état atteignable par le parcours, les deux contrôles donnent le même résultat, puisque l’acceptation convertit une réservation en participation sans changer le total. D03 n’est pas modifié.
+
+*Anomalies corrigées pendant la recette.* Boutons et badges tronqués sur mobile (« Proposei », « Accepter la pla », « Pou… ») : actions empilées, `StatusBadge` ne rétrécit plus. Messages en double après déclin, expiration et acceptation : supprimés.
+
+*Tests automatisés.* `apps/api/src/modules/selection/__tests__/selection.int.test.ts` : 15 tests sur l’API et Postgres réels (16-A à 16-L, balayage parallèle et rejoué, worker BullMQ réel, même clé en parallèle, refus in-app). Suite API complète : 14 suites, 98 tests OK (`jest --runInBand`). Contrôle de mutation : sans le verrou `FOR UPDATE`, 16-H, 16-I et 16-J échouent ; sans le recomptage de l’acceptation, 16-J échoue.
 
 **Instruction d’exécution pour Cursor**
 

@@ -3,15 +3,20 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@12.15.0 --activate
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* .npmrc tsconfig.base.json ./
 COPY packages/contracts/package.json packages/contracts/
+COPY packages/database/package.json packages/database/
 COPY apps/worker/package.json apps/worker/
 RUN pnpm install --frozen-lockfile=false
 
 FROM deps AS build
 COPY tsconfig.base.json ./
 COPY packages/contracts packages/contracts
+COPY packages/database packages/database
 COPY apps/worker apps/worker
 RUN pnpm --filter @boulotflash/contracts build \
+ && DATABASE_URL="postgresql://build:build@localhost:5432/build" pnpm --filter @boulotflash/database prisma:generate \
+ && pnpm --filter @boulotflash/database build \
  && test -f packages/contracts/dist/index.d.ts \
+ && test -f packages/database/dist/index.d.ts \
  && pnpm --filter @boulotflash/worker build
 
 FROM node:24.22.0-bookworm AS runner

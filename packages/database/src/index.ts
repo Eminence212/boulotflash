@@ -9,6 +9,17 @@ export {
   type PrismaClient,
 } from './client';
 export {
+  countOccupied,
+  expireOfferInTx,
+  expireSelectionOffer,
+  insertInAppNotifications,
+  lockJobRow,
+  sweepExpiredOffers,
+  EXPIRE_JOB,
+  SELECTION_QUEUE,
+  type InAppNotification,
+} from './selection';
+export {
   runSeed,
   seedReferentiel,
   seedDemoAccounts,

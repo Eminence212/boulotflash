@@ -634,6 +634,7 @@ model SelectionOffer {
   participation Participation?
 
   @@index([applicationId])
+  @@index([status, expiresAt])
   @@map("selection_offers")
 }
 
@@ -816,6 +817,7 @@ model Notification {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, dedupeKey])
   @@index([userId, createdAt(sort: Desc)])
   @@map("notifications")
 }

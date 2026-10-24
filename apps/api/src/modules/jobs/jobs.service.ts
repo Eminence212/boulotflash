@@ -19,6 +19,7 @@ import {
   offerAcceptsApplications,
 } from './application-rules';
 import { NominatimGeocoder } from './nominatim-geocoder';
+import { ClockService } from '../selection/clock.service';
 import {
   JobValidationError,
   SUBSTANTIAL_KEYS,
@@ -153,6 +154,7 @@ export class JobsService {
     private readonly profiles: ProfileService,
     private readonly publicJobsCache: PublicJobsCacheService,
     private readonly geocoder: NominatimGeocoder,
+    private readonly clock: ClockService,
   ) {}
 
   async listPublicJobs(
@@ -1233,15 +1235,26 @@ export class JobsService {
   async myApplication(userId: string, jobId: string) {
     const row = await this.prisma.client.application.findUnique({
       where: { jobId_workerId: { jobId, workerId: userId } },
-      select: { id: true, status: true, appliedAt: true },
+      select: {
+        id: true,
+        status: true,
+        appliedAt: true,
+        selectionOffers: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { id: true, status: true, expiresAt: true },
+        },
+      },
     });
     if (!row) return { application: null };
+    const now = await this.clock.now();
     return {
       application: {
         id: row.id,
         status: row.status,
         statusLabel: labelFr(row.status),
         appliedAt: row.appliedAt.toISOString(),
+        offer: this.offerView(row.selectionOffers[0], now),
       },
     };
   }
@@ -1258,6 +1271,11 @@ export class JobsService {
         payUnit: true,
         communeName: true,
         appliedAt: true,
+        selectionOffers: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { id: true, status: true, expiresAt: true },
+        },
         job: {
           select: {
             id: true,
@@ -1270,6 +1288,7 @@ export class JobsService {
         },
       },
     });
+    const now = await this.clock.now();
     return {
       items: rows.map((row) => ({
         id: row.id,
@@ -1282,7 +1301,11 @@ export class JobsService {
         amount: row.amount ?? row.job.amount,
         currency: row.currency ?? row.job.currency,
         payUnit: row.payUnit ?? row.job.payUnit,
-        offerExpiresAt: null,
+        offerExpiresAt:
+          row.selectionOffers[0]?.status === 'PENDING'
+            ? row.selectionOffers[0].expiresAt.toISOString()
+            : null,
+        offer: this.offerView(row.selectionOffers[0], now),
       })),
     };
   }
@@ -1970,9 +1993,25 @@ export class JobsService {
     };
   }
 
-  /** D03 : propositions PENDING non expirées + participations non annulées. */
+  /** Proposition vue par le candidat. Une PENDING échue est déjà « expirée » pour lui, même avant le worker. */
+  private offerView(
+    offer: { id: string; status: string; expiresAt: Date } | undefined,
+    now: Date,
+  ) {
+    if (!offer) return null;
+    const expired =
+      offer.status === 'EXPIRED' || (offer.status === 'PENDING' && offer.expiresAt <= now);
+    return {
+      id: offer.id,
+      status: expired ? 'EXPIRED' : offer.status,
+      expiresAt: offer.expiresAt.toISOString(),
+      expired,
+    };
+  }
+
+  /** D03 : propositions PENDING non expirées + participations non annulées, à l’heure applicative. */
   private async countOccupiedPlaces(jobId: string): Promise<number> {
-    const now = new Date();
+    const now = await this.clock.now();
     const [pendingOffers, participations] = await Promise.all([
       this.prisma.client.selectionOffer.count({
         where: {

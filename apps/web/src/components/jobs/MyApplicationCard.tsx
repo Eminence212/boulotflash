@@ -1,8 +1,9 @@
 'use client';
 
 import { forwardRef, useState } from 'react';
-import { Group, Modal, Stack, Text } from '@mantine/core';
-import { IconCircleCheckFilled } from '@tabler/icons-react';
+import Link from 'next/link';
+import { Button, Group, Modal, Stack, Text } from '@mantine/core';
+import { IconAddressBook, IconCircleCheckFilled } from '@tabler/icons-react';
 import { AppAlert, AppButton } from '@/components/feedback';
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
 import {
@@ -20,6 +21,8 @@ export type MyApplication = {
   appliedAt: string | null;
   /** Dernière proposition de place ; `expired` est vrai dès l’échéance, même avant le worker. */
   offer?: { id: string; status: string; expiresAt: string; expired: boolean } | null;
+  /** Participation créée à l’acceptation ; les coordonnées s’ouvrent sur un écran à part. */
+  participation?: { id: string; status: string } | null;
 };
 
 type MyApplicationCardProps = {
@@ -41,7 +44,9 @@ export const MyApplicationCard = forwardRef<HTMLDivElement, MyApplicationCardPro
     const offerOpen =
       application.status === 'OFFERED' && offer?.status === 'PENDING' && !offer.expired;
     const offerExpired = !!offer && offer.expired && application.status !== 'ACCEPTED';
-    const hint = applicationHint(application.status);
+    const cancelled = application.participation?.status === 'CANCELLED';
+    // Participation annulée : le conseil « gardez la date » ne s’applique plus.
+    const hint = cancelled ? null : applicationHint(application.status);
     const justSent = feedback?.tone === 'success';
 
     async function confirmDecline() {
@@ -125,6 +130,22 @@ export const MyApplicationCard = forwardRef<HTMLDivElement, MyApplicationCardPro
           </Text>
         ) : hint ? (
           <Text size="sm">{hint}</Text>
+        ) : null}
+
+        {application.participation?.status === 'CONFIRMED' ? (
+          <Button
+            component={Link}
+            href={`/participations/${application.participation.id}`}
+            color="flash"
+            leftSection={<IconAddressBook size={18} stroke={2} aria-hidden />}
+          >
+            Voir les coordonnées
+          </Button>
+        ) : null}
+        {cancelled ? (
+          <Text size="sm" fw={600} c={tokens.color.status.refus.fg} role="status">
+            Participation annulée : les coordonnées ne sont plus accessibles.
+          </Text>
         ) : null}
 
         {feedback && !justSent ? (

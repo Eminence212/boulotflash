@@ -12,6 +12,8 @@ export async function apiFetch<T>(
     body?: unknown;
     accessToken?: string | null;
     headers?: Record<string, string>;
+    /** `no-store` pour les données privées (coordonnées) : jamais resservies par le cache. */
+    cache?: RequestCache;
   } = {},
 ): Promise<{ status: number; data: T & ApiError }> {
   const headers: Record<string, string> = {
@@ -28,6 +30,7 @@ export async function apiFetch<T>(
     method: opts.method ?? (opts.body !== undefined ? 'POST' : 'GET'),
     headers,
     body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+    cache: opts.cache,
     credentials: 'include',
   });
   const data = (await res.json().catch(() => ({}))) as T & ApiError;

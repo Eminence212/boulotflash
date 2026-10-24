@@ -1,7 +1,8 @@
 'use client';
 
-import { Group, Paper, Stack, Text } from '@mantine/core';
-import { IconCalendarTime, IconMapPin, IconPhoneCheck } from '@tabler/icons-react';
+import Link from 'next/link';
+import { Button, Group, Paper, Stack, Text } from '@mantine/core';
+import { IconAddressBook, IconCalendarTime, IconMapPin, IconPhoneCheck } from '@tabler/icons-react';
 import { AppButton } from '@/components/feedback';
 import { AppChip } from '@/components/boulotflash/AppChip';
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
@@ -25,6 +26,7 @@ export type Applicant = {
     phoneBadge: boolean;
   };
   offer: { id: string; status: string; expiresAt: string; expired: boolean } | null;
+  participation: { id: string; status: string } | null;
 };
 
 export type ApplicantAction = 'shortlist' | 'reject' | 'offer';
@@ -62,7 +64,9 @@ function offerLine(offer: NonNullable<Applicant['offer']>): { text: string; colo
 export function ApplicantCard({ applicant, busy, locked, noPlaceLeft, onAction }: ApplicantCardProps) {
   const { candidate, offer } = applicant;
   const canDecide = applicant.status === 'SUBMITTED' || applicant.status === 'SHORTLISTED';
-  const line = offer ? offerLine(offer) : null;
+  const cancelled = applicant.participation?.status === 'CANCELLED';
+  // Participation annulée : « place acceptée » ne décrit plus la situation.
+  const line = offer && !cancelled ? offerLine(offer) : null;
 
   return (
     <Paper
@@ -136,6 +140,23 @@ export function ApplicantCard({ applicant, busy, locked, noPlaceLeft, onAction }
         {line?.text ? (
           <Text size="sm" fw={600} c={line.color} role="status">
             {line.text}
+          </Text>
+        ) : null}
+
+        {applicant.participation?.status === 'CONFIRMED' ? (
+          <Button
+            component={Link}
+            href={`/participations/${applicant.participation.id}`}
+            variant="light"
+            color="flash"
+            leftSection={<IconAddressBook size={18} stroke={2} aria-hidden />}
+          >
+            Coordonnées
+          </Button>
+        ) : null}
+        {cancelled ? (
+          <Text size="sm" fw={600} c={tokens.color.status.refus.fg} role="status">
+            Participation annulée : la place est libérée et les coordonnées ne sont plus accessibles.
           </Text>
         ) : null}
 

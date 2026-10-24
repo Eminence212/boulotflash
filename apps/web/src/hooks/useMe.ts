@@ -35,7 +35,8 @@ export function useMe(opts: { requireAuth?: boolean } = {}) {
       if (opts.requireAuth) router.replace('/connexion');
       return null;
     }
-    setLoading(true);
+    // Pas de retour au chargement plein écran après un enregistrement ou un changement de mode :
+    // seul le premier chargement affiche le loader.
     const { status, data } = await apiFetch<MeResponse>('/me', {
       accessToken: token,
     });

@@ -2,9 +2,8 @@
 
 import { use, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
-import { Anchor, Checkbox, Group, Stack, Text, Textarea, Title } from '@mantine/core';
-import { Copy, ShareNetwork } from '@phosphor-icons/react';
+import { Checkbox, Group, Stack, Text, Textarea, Title } from '@mantine/core';
+import { IconCopy, IconShare } from '@tabler/icons-react';
 import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import { AppChip } from '@/components/boulotflash/AppChip';
 import { JobPostHeader } from '@/components/boulotflash/JobPostHeader';
@@ -16,12 +15,14 @@ import {
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
 import { AppShellLayout } from '@/components/layout/AppShellLayout';
 import { PageActions } from '@/components/layout/PageActions';
+import { BackLink } from '@/components/ui/BackLink';
 import { useMe } from '@/hooks/useMe';
 import { apiFetch, readAccessToken } from '@/lib/api';
 import {
   formatMoney,
   formatStartAt,
   isEmployerMode,
+  payUnitLabel,
   type PublicJob,
 } from '@/lib/me';
 import { copyPublicUrl, sharePublicUrl } from '@/lib/share';
@@ -65,6 +66,8 @@ export default function MissionPublicPage({
   const [note, setNote] = useState('');
   const [mine, setMine] = useState<MyApplication | null>(null);
   const idempotencyKey = useRef<string | null>(null);
+  // Une clé par réponse à la proposition : double clic et nouvel essai rejouent la même demande.
+  const answerKeys = useRef(new Map<string, string>());
   const cardRef = useRef<HTMLDivElement>(null);
 
   // Après l’envoi, la confirmation doit être sous les yeux, pas sous la barre.
@@ -207,6 +210,46 @@ export default function MissionPublicPage({
     }
   }
 
+  /** Places restantes à jour après une réponse à la proposition. */
+  async function reloadJob() {
+    const { status, data } = await apiFetch<PublicDetail>(`/jobs/${id}`);
+    if (status < 400) setJob(data as PublicDetail);
+  }
+
+  async function answerOffer(answer: 'accept' | 'decline'): Promise<boolean> {
+    const offer = mine?.offer;
+    const token = readAccessToken();
+    if (!offer || !token || busy) return false;
+    const slot = `${answer}:${offer.id}`;
+    const key = answerKeys.current.get(slot) ?? crypto.randomUUID();
+    answerKeys.current.set(slot, key);
+    setBusy(true);
+    setCardFeedback(null);
+    try {
+      const { status, data } = await apiFetch<{ code?: string; message?: string }>(
+        `/selection-offers/${offer.id}/${answer}`,
+        { method: 'POST', accessToken: token, headers: { 'Idempotency-Key': key } },
+      );
+      answerKeys.current.delete(slot);
+      // Expiration et déclin : la carte affiche déjà le statut et son explication, pas de second message.
+      if (status >= 400 && data.code !== 'PROPOSAL_EXPIRED') {
+        setCardFeedback({ tone: 'error', text: data.message ?? 'Réponse impossible.' });
+      } else if (status < 400 && answer === 'accept') {
+        setCardFeedback({ tone: 'success', text: 'Votre place est confirmée.' });
+      }
+      const { data: current } = await fetchMine(token);
+      setMine(current.application ?? null);
+      await reloadJob();
+      return true;
+    } catch {
+      // La clé est gardée : le prochain essai rejoue la même demande sans doublon.
+      setCardFeedback({ tone: 'error', text: 'Non envoyé. Vérifiez votre connexion puis réessayez.' });
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function onWithdraw(): Promise<boolean> {
     if (!mine?.id) return false;
     const token = readAccessToken();
@@ -255,14 +298,9 @@ export default function MissionPublicPage({
     <AppShellLayout
       me={me}
       title={job?.title ?? 'Mission'}
-      onModeChanged={() => void refresh()}
     >
       <Stack gap="md">
-        <Text size="sm" c="dimmed">
-          <Anchor component={Link} href="/" fw={600}>
-            ← Accueil
-          </Anchor>
-        </Text>
+        <BackLink href="/" label="Toutes les missions" />
 
         {error ? (
           <AppAlert tone="error" title="Offre">
@@ -289,6 +327,10 @@ export default function MissionPublicPage({
                 feedback={cardFeedback}
                 busy={busy}
                 onWithdraw={onWithdraw}
+                onAccept={async () => {
+                  await answerOffer('accept');
+                }}
+                onDecline={() => answerOffer('decline')}
               />
             ) : null}
 
@@ -312,11 +354,7 @@ export default function MissionPublicPage({
                 {formatMoney(job.amount, job.currency)}
               </Text>{' '}
               <Text span c="dimmed">
-                {job.payUnit === 'HOUR'
-                  ? 'de l’heure'
-                  : job.payUnit === 'DAY'
-                    ? 'la journée'
-                    : 'la mission'}
+                {payUnitLabel(job.payUnit)}
               </Text>
             </Text>
             <Text size="sm" fw={600}>
@@ -375,7 +413,7 @@ export default function MissionPublicPage({
                 <AppButton
                   variant="default"
                   leftSection={
-                    <ShareNetwork size={18} weight="regular" aria-hidden />
+                    <IconShare size={18} stroke={2} aria-hidden />
                   }
                   onClick={() => void onShare()}
                 >
@@ -384,7 +422,7 @@ export default function MissionPublicPage({
                 <AppButton
                   variant="default"
                   leftSection={
-                    <Copy size={18} weight="regular" aria-hidden />
+                    <IconCopy size={18} stroke={2} aria-hidden />
                   }
                   aria-label="Copier le lien"
                   onClick={() => void onCopyLink()}

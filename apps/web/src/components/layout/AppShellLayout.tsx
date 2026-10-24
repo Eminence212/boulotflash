@@ -12,7 +12,6 @@ import {
 } from '@mantine/core';
 import { IconBriefcase, IconClipboardText, IconHome, IconUser } from '@tabler/icons-react';
 import { BrandLogo } from '@/components/brand';
-import { ModeSwitcher } from '@/components/boulotflash/ModeSwitcher';
 import { AccountMenu } from '@/components/layout/AccountMenu';
 import {
   disableCurrentLocation,
@@ -35,7 +34,6 @@ type Tab = {
 type AppShellLayoutProps = {
   children: ReactNode;
   me: MeResponse | null;
-  onModeChanged?: (mode: 'WORKER' | 'EMPLOYER') => void;
   title?: string;
   hideTabbar?: boolean;
   /** Profil et liste à recharger après un changement de position. */
@@ -94,7 +92,6 @@ function tabsFor(me: MeResponse | null): Tab[] {
 export function AppShellLayout({
   children,
   me,
-  onModeChanged,
   title,
   hideTabbar,
   onLocationChanged,
@@ -166,9 +163,6 @@ export function AppShellLayout({
               <BrandLogo size="sm" href="/" />
             </Box>
             <Group gap={8} wrap="nowrap" justify="flex-end" style={{ flexShrink: 0 }}>
-              {me?.modesAvailable.canSwitch && onModeChanged ? (
-                <ModeSwitcher me={me} onChanged={onModeChanged} />
-              ) : null}
               {loggedIn && me ? (
                 <AccountMenu
                   me={{
@@ -221,6 +215,7 @@ export function AppShellLayout({
               locationShared: me.locationShared && !locationRevoked,
             }}
             onChanged={onLocationChanged}
+            prompt={pathname === '/'}
           />
         ) : null}
         {children}
@@ -258,14 +253,20 @@ export function AppShellLayout({
                       gap: 2,
                       minHeight: 44,
                       justifyContent: 'center',
+                      // Libellé actif : variante lisible du bleu du logo ; icône : bleu du logo.
                       color: active
-                        ? tokens.color.brand.flash
+                        ? tokens.color.brand.flashText
                         : tokens.color.brand.inkMuted,
                       fontWeight: active ? 700 : 500,
                       fontSize: 12,
                     }}
                   >
-                    <Icon size={22} stroke={2} aria-hidden />
+                    <Icon
+                      size={22}
+                      stroke={2}
+                      aria-hidden
+                      color={active ? tokens.color.brand.flash : undefined}
+                    />
                     {tab.label}
                   </UnstyledButton>
                 );

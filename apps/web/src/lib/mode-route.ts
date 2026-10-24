@@ -24,5 +24,7 @@ export function pageForMode(
   }
   if (pathname === '/publier' || pathname.startsWith('/publier/')) return '/';
   if (pathname === '/missions') return '/';
+  // Écran recruteur des candidatures d’une offre : sans objet en mode candidat.
+  if (/^\/missions\/[^/]+\/candidatures/.test(pathname)) return '/';
   return null;
 }

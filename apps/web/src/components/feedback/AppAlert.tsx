@@ -3,11 +3,11 @@
 import type { ReactNode } from 'react';
 import { Alert, type AlertProps } from '@mantine/core';
 import {
-  CheckIcon,
-  InfoIcon,
-  WarningIcon,
-  XIcon,
-} from '@phosphor-icons/react';
+  IconCircleX,
+  IconAlertTriangle,
+  IconCircleCheck,
+  IconInfoCircle,
+} from '@tabler/icons-react';
 
 export type AppAlertTone = 'error' | 'warning' | 'success' | 'info';
 
@@ -22,22 +22,22 @@ const TONE: Record<
   error: {
     color: 'red',
     title: 'Erreur',
-    icon: <XIcon size={20} aria-hidden />,
+    icon: <IconCircleX size={20} stroke={2} aria-hidden />,
   },
   warning: {
     color: 'yellow',
     title: 'Attention',
-    icon: <WarningIcon size={20} aria-hidden />,
+    icon: <IconAlertTriangle size={20} stroke={2} aria-hidden />,
   },
   success: {
     color: 'teal',
     title: 'OK',
-    icon: <CheckIcon size={20} aria-hidden />,
+    icon: <IconCircleCheck size={20} stroke={2} aria-hidden />,
   },
   info: {
     color: 'blue',
     title: 'Info',
-    icon: <InfoIcon size={20} aria-hidden />,
+    icon: <IconInfoCircle size={20} stroke={2} aria-hidden />,
   },
 };
 

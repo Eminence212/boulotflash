@@ -11,6 +11,7 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { AuthPageShell } from '@/components/auth/AuthPageShell';
+import { PhoneField } from '@/components/boulotflash/PhoneField';
 import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import { apiFetch, clearAccessToken, readAccessToken } from '@/lib/api';
 import { tokens } from '@/theme/tokens';
@@ -111,10 +112,10 @@ export default function CompleterProfilPage() {
               <Title order={1} fz={22} fw={800}>
                 Compléter mon profil
               </Title>
-              <Text size="sm" c="dimmed">
-                Le provider n’a pas fourni tous les champs. Sans numéro, vous
-                pouvez consulter les offres ; candidature et publication
-                restent bloquées.
+              <Text size="sm" c="dimmed" style={{ lineHeight: 1.5 }}>
+                Votre compte de connexion ne nous a pas transmis ces
+                informations. Sans numéro, vous pouvez consulter les offres,
+                mais pas postuler ni publier.
               </Text>
             </Stack>
 
@@ -124,18 +125,14 @@ export default function CompleterProfilPage() {
               required
               {...form.getInputProps('displayName')}
             />
-            <TextInput
-              label="Téléphone"
-              description="Format pilote Kinshasa (+243…)"
-              placeholder="+243812345678"
-              required
-              {...form.getInputProps('phone')}
+            <PhoneField
+              value={form.values.phone}
+              onChange={(value) => {
+                form.setFieldValue('phone', value);
+                form.clearFieldError('phone');
+              }}
+              error={form.errors.phone}
             />
-
-            <AppAlert tone="info" title="Téléphone requis">
-              Sans numéro, consultation seule — candidature et publication
-              restent bloquées.
-            </AppAlert>
 
             {error ? (
               <AppAlert tone="error" title="Profil">

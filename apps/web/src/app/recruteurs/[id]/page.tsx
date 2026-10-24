@@ -1,10 +1,12 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Anchor, Avatar, Group, Stack, Text, Title } from '@mantine/core';
+import { Avatar, Group, Stack, Text, Title } from '@mantine/core';
 import { AppAlert, GlobalLoader } from '@/components/feedback';
 import { JobCard } from '@/components/boulotflash/JobCard';
+import { BackLink } from '@/components/ui/BackLink';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { IconBriefcase } from '@tabler/icons-react';
 import { AppShellLayout } from '@/components/layout/AppShellLayout';
 import { useMe } from '@/hooks/useMe';
 import { apiFetch } from '@/lib/api';
@@ -68,12 +70,9 @@ export default function PublisherProfilePage({
     <AppShellLayout
       me={me}
       title={profile?.name ?? 'Profil'}
-      onModeChanged={() => void refresh()}
     >
       <Stack gap="md">
-        <Anchor component={Link} href="/" size="sm" fw={600}>
-          ← Accueil
-        </Anchor>
+        <BackLink href="/" label="Toutes les missions" />
 
         {error ? (
           <AppAlert tone="error" title="Profil">
@@ -116,9 +115,12 @@ export default function PublisherProfilePage({
               Missions publiées
             </Title>
             {profile.jobs.length === 0 ? (
-              <Text size="sm" c="dimmed">
-                Aucune mission publiée en ce moment.
-              </Text>
+              <EmptyState
+                icon={IconBriefcase}
+                title="Aucune mission publiée en ce moment"
+                description="Revenez plus tard ou parcourez les autres missions."
+                action={{ label: 'Voir les missions', href: '/' }}
+              />
             ) : (
               profile.jobs.map((job) => <JobCard key={job.id} job={job} />)
             )}

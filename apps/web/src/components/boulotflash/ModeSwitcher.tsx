@@ -11,12 +11,14 @@ type ModeSwitcherProps = {
   me: MeResponse;
   onChanged: (mode: 'WORKER' | 'EMPLOYER') => void;
   disabled?: boolean;
+  /** Pleine largeur, taille confortable au doigt (page profil). */
+  fullWidth?: boolean;
 };
 
 /**
  * Sélecteur candidat / recruteur — visible seulement si les deux profils existent.
  */
-export function ModeSwitcher({ me, onChanged, disabled }: ModeSwitcherProps) {
+export function ModeSwitcher({ me, onChanged, disabled, fullWidth = false }: ModeSwitcherProps) {
   const router = useRouter();
   const pathname = usePathname() ?? '/';
   const [pending, setPending] = useState<'WORKER' | 'EMPLOYER' | null>(null);
@@ -45,7 +47,8 @@ export function ModeSwitcher({ me, onChanged, disabled }: ModeSwitcherProps) {
 
   return (
     <SegmentedControl
-      size="xs"
+      size={fullWidth ? 'md' : 'xs'}
+      fullWidth={fullWidth}
       value={pending ?? value}
       onChange={(v) => void switchMode(v)}
       disabled={disabled || pending !== null}

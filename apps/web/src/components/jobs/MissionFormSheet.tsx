@@ -24,7 +24,7 @@ export function MissionFormSheet({ title, onClose, children }: MissionFormSheetP
       padding="md"
       radius={isMobile ? 'md' : 0}
       title={
-        <Text fw={700} style={{ fontFamily: tokens.typography.fontFamily.display }}>
+        <Text fw={700} style={{ fontFamily: 'var(--font-display)' }}>
           {title}
         </Text>
       }

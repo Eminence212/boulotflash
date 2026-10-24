@@ -31,7 +31,7 @@ export default function EditJobPage({
     me.status !== 'CLOSED';
 
   return (
-    <AppShellLayout me={me} onModeChanged={() => void refresh()}>
+    <AppShellLayout me={me}>
       <MissionFormSheet
         title="Modifier la mission"
         onClose={() => router.push('/missions')}

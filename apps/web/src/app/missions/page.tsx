@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Anchor, Group, Stack, Text, Title } from '@mantine/core';
-import { ShareNetwork } from '@phosphor-icons/react';
+import { Button, Group, Stack, Text } from '@mantine/core';
+import { IconBriefcase, IconPlus, IconShare, IconUsers } from '@tabler/icons-react';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
 import { AppShellLayout } from '@/components/layout/AppShellLayout';
@@ -99,34 +101,28 @@ export default function MissionsPage() {
   const employer = isEmployerMode(me);
 
   return (
-    <AppShellLayout me={me} title="Mes missions" onModeChanged={() => void refresh()}>
+    <AppShellLayout me={me}>
       <Stack gap="md">
-        <Group justify="space-between" align="flex-start">
-          <div>
-            <Title order={1} fz={22} fw={800}>
-              Mes missions
-            </Title>
-            {subLabel ? (
-              <Text size="xs" c="dimmed" mt={4}>
-                Abonnement : {subLabel}
-                {me.subscription?.status
-                  ? ` · ${me.subscription.status}`
-                  : null}
-              </Text>
-            ) : null}
-          </div>
-          {employer ? (
-            <AppButton
-              color="flash"
-              size="sm"
-              onClick={() => {
-                window.location.assign('/publier');
-              }}
-            >
-              Créer
-            </AppButton>
-          ) : null}
-        </Group>
+        <PageHeader
+          title="Mes missions"
+          description={
+            subLabel
+              ? `Abonnement : ${subLabel}`
+              : 'Vos offres, leurs candidatures et leur statut.'
+          }
+          actions={
+            employer ? (
+              <Button
+                component={Link}
+                href="/publier"
+                color="flash"
+                leftSection={<IconPlus size={18} stroke={2} aria-hidden />}
+              >
+                Créer
+              </Button>
+            ) : null
+          }
+        />
 
         {!employer ? (
           <AppAlert tone="info" title="Mode candidat">
@@ -141,12 +137,12 @@ export default function MissionsPage() {
         ) : null}
 
         {employer && items.length === 0 && !error ? (
-          <Text size="sm" c="dimmed">
-            Aucune mission pour l’instant.{' '}
-            <Anchor component={Link} href="/publier" fw={600}>
-              Publier une offre
-            </Anchor>
-          </Text>
+          <EmptyState
+            icon={IconBriefcase}
+            title="Aucune mission pour l’instant"
+            description="Décrivez la mission, la date, le lieu et la rémunération. Votre première offre est vérifiée par l’équipe avant publication."
+            action={{ label: 'Créer une mission', href: '/publier' }}
+          />
         ) : null}
 
         {items.map((job) => (
@@ -192,6 +188,17 @@ export default function MissionsPage() {
               </Text>
             ) : null}
             <Group gap="sm">
+              {job.applicationsCount > 0 || job.status === 'PUBLISHED' || job.status === 'FILLED' ? (
+                <Button
+                  component={Link}
+                  href={`/missions/${job.id}/candidatures`}
+                  size="sm"
+                  color="flash"
+                  leftSection={<IconUsers size={16} stroke={2} aria-hidden />}
+                >
+                  Candidatures ({job.applicationsCount})
+                </Button>
+              ) : null}
               {job.status === 'DRAFT' || job.status === 'REJECTED' ? (
                 <AppButton
                   variant="default"
@@ -229,7 +236,7 @@ export default function MissionsPage() {
                     variant="default"
                     size="sm"
                     leftSection={
-                      <ShareNetwork size={16} weight="regular" aria-hidden />
+                      <IconShare size={16} stroke={2} aria-hidden />
                     }
                     onClick={() =>
                       void sharePublicUrl(`/missions/${job.id}`, job.title)

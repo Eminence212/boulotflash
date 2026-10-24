@@ -118,6 +118,30 @@ export const SLOT_LABELS: Record<string, string> = {
   EVENING: 'soir',
 };
 
+const SLOT_ORDER = ['MORNING', 'AFTERNOON', 'EVENING'];
+
+/** « Lun. matin, Mar. soir » : disponibilités lisibles d’un coup d’œil. */
+export function formatAvailability(slots: { weekday: number; slot: string }[]): string {
+  if (slots.length === 0) return 'Aucun créneau indiqué';
+  return [...slots]
+    .sort((a, b) => a.weekday - b.weekday || SLOT_ORDER.indexOf(a.slot) - SLOT_ORDER.indexOf(b.slot))
+    .map((s) => `${(WEEKDAY_LABELS[s.weekday] ?? '').slice(0, 3)}. ${SLOT_LABELS[s.slot] ?? s.slot}`)
+    .join(', ');
+}
+
+/** « dans 1 h 45 », « dans 12 min », ou null si l’échéance est passée. */
+export function timeLeftLabel(iso: string, now = Date.now()): string | null {
+  const ms = new Date(iso).getTime() - now;
+  if (!Number.isFinite(ms) || ms <= 0) return null;
+  const minutes = Math.ceil(ms / 60_000);
+  if (minutes < 60) return `dans ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours < 24) return rest ? `dans ${hours} h ${String(rest).padStart(2, '0')}` : `dans ${hours} h`;
+  const days = Math.floor(hours / 24);
+  return `dans ${days} jour${days > 1 ? 's' : ''}`;
+}
+
 export const EMPLOYER_TYPE_LABELS: Record<string, string> = {
   INDIVIDUAL: 'Particulier',
   BUSINESS: 'Entreprise',
@@ -144,6 +168,13 @@ export function formatMoney(amountCents: number, currency: string): string {
         });
   if (currency === 'USD') return `${label} USD`;
   return `${label} CDF`;
+}
+
+/** Complète le montant : « 15 USD la mission », « 5 USD de l’heure ». */
+export function payUnitLabel(unit: string): string {
+  if (unit === 'HOUR') return 'de l’heure';
+  if (unit === 'DAY') return 'la journée';
+  return 'la mission';
 }
 
 export function formatStartAt(iso: string): string {

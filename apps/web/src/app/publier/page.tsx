@@ -25,7 +25,7 @@ export default function PublierPage() {
     employer && !!me.employerProfile && !suspended && !subInactive;
 
   return (
-    <AppShellLayout me={me} onModeChanged={() => void refresh()}>
+    <AppShellLayout me={me}>
       <MissionFormSheet title="Créer une mission" onClose={() => router.push('/missions')}>
         <Stack gap="sm" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
           {!employer ? (

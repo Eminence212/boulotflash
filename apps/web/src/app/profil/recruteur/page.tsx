@@ -1,24 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {
-  Group,
-  Paper,
-  Select,
-  Stack,
-  Text,
-  TextInput,
-  Textarea,
-  Title,
-} from '@mantine/core';
+import Link from 'next/link';
+import { Button, Group, Select, SimpleGrid, Stack, Text, TextInput, Textarea } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { IconGift } from '@tabler/icons-react';
+import { IconBriefcase, IconGift, IconPlus } from '@tabler/icons-react';
 import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import {
   PhoneField,
   isValidPilotPhoneInput,
 } from '@/components/boulotflash/PhoneField';
+import { ModeSwitchCard } from '@/components/boulotflash/ModeSwitchCard';
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
+import { FormSection } from '@/components/ui/FormSection';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { AppShellLayout } from '@/components/layout/AppShellLayout';
 import { useMe } from '@/hooks/useMe';
 import { apiFetch, readAccessToken } from '@/lib/api';
@@ -32,6 +27,7 @@ export default function ProfilRecruteurPage() {
   const [communes, setCommunes] = useState<CatalogItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const form = useForm({
     initialValues: {
@@ -74,6 +70,7 @@ export default function ProfilRecruteurPage() {
 
   async function onSave() {
     setError(null);
+    setSaved(false);
     const validation = form.validate();
     if (validation.hasErrors) return;
     setSaving(true);
@@ -113,6 +110,7 @@ export default function ProfilRecruteurPage() {
       return;
     }
     await refresh();
+    setSaved(true);
   }
 
   if (loading || !me) {
@@ -124,185 +122,150 @@ export default function ProfilRecruteurPage() {
   const subActive = sub?.status === 'ACTIVE';
 
   return (
-    <AppShellLayout
-      me={me}
-      title="Profil recruteur"
-      onModeChanged={() => void refresh()}
-    >
+    <AppShellLayout me={me}>
       <Stack gap="md">
-        <Paper
-          radius="lg"
-          p="md"
-          withBorder
-          style={{ borderColor: tokens.color.border.subtle }}
-        >
-          <Group justify="space-between" align="flex-start" mb="sm">
-            <Stack gap={4}>
-              <Title order={2} fz={20} fw={800}>
-                {form.values.displayName || 'Profil recruteur'}
-              </Title>
-              <StatusBadge tone="soft">Recruteur</StatusBadge>
-            </Stack>
-            {hasEmployer ? (
-              <StatusBadge tone={subActive ? 'succes' : 'refus'}>
-                {subActive ? 'Abonnement actif' : sub?.label ?? 'Inactif'}
-              </StatusBadge>
-            ) : (
-              <StatusBadge tone="attente">À créer</StatusBadge>
-            )}
-          </Group>
-          {me.employerProfile?.commune?.name ? (
-            <Text size="sm" fw={600} mt="xs">
-              {me.employerProfile.commune.name}
-            </Text>
-          ) : null}
-        </Paper>
+        <PageHeader
+          title="Profil recruteur"
+          description={
+            hasEmployer
+              ? 'Ce que voient les candidats sur vos offres. L’adresse et le téléphone restent privés.'
+              : 'Créez votre profil pour publier des missions.'
+          }
+          actions={
+            hasEmployer ? null : <StatusBadge tone="attente">À créer</StatusBadge>
+          }
+        />
 
-        {hasEmployer && subActive ? (
-          <Paper
-            radius="md"
+        <ModeSwitchCard me={me} onChanged={() => void refresh()} />
+
+        {hasEmployer && sub ? (
+          <Stack
+            gap="xs"
             p="md"
             style={{
               background: tokens.color.brand.flashSoft,
               border: `1px solid ${tokens.color.border.subtle}`,
+              borderRadius: 16,
             }}
           >
-            <Group gap="sm" wrap="nowrap" align="flex-start">
-              <IconGift size={22} stroke={2} color={tokens.color.brand.flash} aria-hidden />
-              <Text size="sm" fw={600}>
-                Services gratuits — aucune demande de paiement pour publier.
-              </Text>
-            </Group>
-          </Paper>
-        ) : null}
-
-        {hasEmployer ? (
-          <Paper
-            radius="lg"
-            p="md"
-            withBorder
-            style={{ borderColor: tokens.color.border.subtle }}
-          >
-            <Group justify="space-between">
-              <Stack gap={2}>
+            <Group justify="space-between" wrap="nowrap" gap="sm">
+              <Group gap="sm" wrap="nowrap">
+                <IconGift size={22} stroke={2} color={tokens.color.brand.flash} aria-hidden />
                 <Text fw={700} size="sm">
-                  État commercial
+                  {sub.label}
                 </Text>
-                <Text size="xs" c="dimmed">
-                  Interrupteur plateforme : services_payants = faux
-                </Text>
-              </Stack>
-              <StatusBadge tone="soft">Gratuit</StatusBadge>
-            </Group>
-          </Paper>
-        ) : null}
-
-        {hasEmployer && sub ? (
-          <Paper
-            radius="lg"
-            p="md"
-            withBorder
-            style={{ borderColor: tokens.color.border.subtle }}
-          >
-            <Group justify="space-between">
-              <Stack gap={2}>
-                <Text fw={700} size="sm">
-                  Abonnement
-                </Text>
-                <Text size="xs" c="dimmed">
-                  {sub.endsAt
-                    ? `Échéance : ${new Date(sub.endsAt).toLocaleDateString('fr-FR')}`
-                    : 'Droit d’accès actif, sans échéance affichée'}
-                </Text>
-              </Stack>
+              </Group>
               <StatusBadge tone={subActive ? 'succes' : 'refus'}>
-                {sub.status}
+                {subActive ? 'Actif' : 'Inactif'}
               </StatusBadge>
             </Group>
-          </Paper>
+            <Text size="sm" c="dimmed">
+              {subActive
+                ? 'Aucune demande de paiement pour publier tant que les services sont gratuits.'
+                : 'Votre abonnement n’est pas actif : la publication est bloquée.'}
+              {sub.endsAt
+                ? ` Échéance : ${new Date(sub.endsAt).toLocaleDateString('fr-FR')}.`
+                : ''}
+            </Text>
+          </Stack>
         ) : null}
 
-        <Select
-          label="Type"
-          data={Object.entries(EMPLOYER_TYPE_LABELS).map(([value, label]) => ({
-            value,
-            label,
-          }))}
-          {...form.getInputProps('type')}
-        />
-        <TextInput
-          label="Nom affiché"
-          required
-          {...form.getInputProps('displayName')}
-        />
-        <PhoneField
-          value={form.values.phone}
-          onChange={(v) => {
-            form.setFieldValue('phone', v);
-            form.clearFieldError('phone');
-          }}
-          error={form.errors.phone}
-        />
-        {!me.phone ? (
-          <AppAlert tone="warning" title="Téléphone requis">
-            Indiquez un numéro ci-dessus puis enregistrez — requis pour créer un
-            profil recruteur.
-          </AppAlert>
+        {hasEmployer && subActive ? (
+          <SimpleGrid cols={2} spacing="sm">
+            <Button
+              component={Link}
+              href="/missions"
+              variant="default"
+              leftSection={<IconBriefcase size={18} stroke={2} aria-hidden />}
+            >
+              Mes missions
+            </Button>
+            <Button
+              component={Link}
+              href="/publier"
+              color="flash"
+              leftSection={<IconPlus size={18} stroke={2} aria-hidden />}
+            >
+              Créer une mission
+            </Button>
+          </SimpleGrid>
         ) : null}
-        <TextInput
-          label="Nom du responsable"
-          {...form.getInputProps('contactPerson')}
-        />
-        <Select
-          label="Commune"
-          searchable
-          placeholder="Choisir"
-          data={communes.map((c) => ({ value: c.id, label: c.name }))}
-          value={form.values.communeId}
-          onChange={(v) => form.setFieldValue('communeId', v)}
-        />
-        <Textarea
-          label="Présentation"
-          minRows={2}
-          {...form.getInputProps('presentation')}
-        />
+
+        <FormSection title="Identité" framed>
+          <Select
+            label="Vous êtes"
+            data={Object.entries(EMPLOYER_TYPE_LABELS).map(([value, label]) => ({
+              value,
+              label,
+            }))}
+            allowDeselect={false}
+            {...form.getInputProps('type')}
+          />
+          <TextInput
+            label="Nom affiché"
+            description="Le nom que voient les candidats sur vos offres."
+            required
+            {...form.getInputProps('displayName')}
+          />
+          <TextInput
+            label="Nom du responsable"
+            description="Facultatif. Utile pour une entreprise ou une organisation."
+            {...form.getInputProps('contactPerson')}
+          />
+          <Textarea
+            label="Présentation"
+            description="Facultatif. Quelques mots sur votre activité."
+            autosize
+            minRows={2}
+            {...form.getInputProps('presentation')}
+          />
+        </FormSection>
+
+        <FormSection title="Contact et lieu" framed>
+          <PhoneField
+            value={form.values.phone}
+            onChange={(v) => {
+              form.setFieldValue('phone', v);
+              form.clearFieldError('phone');
+            }}
+            error={form.errors.phone}
+          />
+          {!me.phone ? (
+            <Text size="sm" c={tokens.color.status.alerte.fg} fw={600}>
+              Numéro requis pour créer un profil recruteur.
+            </Text>
+          ) : null}
+          <Select
+            label="Commune"
+            searchable
+            placeholder="Choisir une commune"
+            nothingFoundMessage="Aucune commune"
+            data={communes.map((c) => ({ value: c.id, label: c.name }))}
+            value={form.values.communeId}
+            onChange={(v) => form.setFieldValue('communeId', v)}
+          />
+        </FormSection>
 
         {error ? (
           <AppAlert tone="error" title="Profil">
             {error}
           </AppAlert>
         ) : null}
+        {saved && !error ? (
+          <AppAlert tone="success" title="Profil enregistré">
+            Vos modifications sont prises en compte.
+          </AppAlert>
+        ) : null}
 
         <AppButton
           color="flash"
+          size="md"
           loading={saving}
           onClick={() => void onSave()}
           fullWidth
         >
           {hasEmployer ? 'Enregistrer' : 'Créer le profil recruteur'}
         </AppButton>
-
-        {hasEmployer && subActive ? (
-          <Group grow>
-            <AppButton
-              variant="outline"
-              color="flash"
-              onClick={() => {
-                window.location.assign('/missions');
-              }}
-            >
-              Mes missions
-            </AppButton>
-            <AppButton
-              color="flash"
-              onClick={() => {
-                window.location.assign('/publier');
-              }}
-            >
-              Créer
-            </AppButton>
-          </Group>
-        ) : null}
       </Stack>
     </AppShellLayout>
   );

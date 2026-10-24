@@ -22,6 +22,7 @@ import { IconCalendar } from '@tabler/icons-react';
 import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import { tokens } from '@/theme/tokens';
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
+import { FormSection } from '@/components/ui/FormSection';
 import { JobStatusNotice, reviewReasonsFor } from '@/components/jobs/JobStatusNotice';
 import { apiFetch, readAccessToken } from '@/lib/api';
 import {
@@ -196,37 +197,6 @@ function fromPicker(value: string | Date | null): string {
   return toDatetimeLocalValue(d.toISOString());
 }
 
-function FormSection({
-  title,
-  hint,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  children: ReactNode;
-}) {
-  return (
-    <Stack gap="sm">
-      <Stack gap={2}>
-        <Text
-          size="xs"
-          tt="uppercase"
-          fw={700}
-          c="dimmed"
-          style={{ letterSpacing: '0.04em' }}
-        >
-          {title}
-        </Text>
-        {hint ? (
-          <Text size="sm" c="dimmed">
-            {hint}
-          </Text>
-        ) : null}
-      </Stack>
-      {children}
-    </Stack>
-  );
-}
 
 export function PublishJobForm({ initialJobId = null }: PublishJobFormProps) {
   const router = useRouter();

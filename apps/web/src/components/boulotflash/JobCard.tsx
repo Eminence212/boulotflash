@@ -1,20 +1,36 @@
 'use client';
 
-import { Paper, Stack, Group, Text, Title } from '@mantine/core';
-import { formatMoney, formatStartAt, type PublicJob } from '@/lib/me';
+import Link from 'next/link';
+import { Button, Group, Paper, Stack, Text, Title } from '@mantine/core';
+import { IconClock, IconMapPin, IconRoute } from '@tabler/icons-react';
+import { formatMoney, formatStartAt, payUnitLabel, type PublicJob } from '@/lib/me';
 import { tokens } from '@/theme/tokens';
 import { AppChip } from './AppChip';
 import { JobPostHeader } from './JobPostHeader';
 import { StatusBadge } from './StatusBadge';
-import { AppButton } from '@/components/feedback';
 
 type JobCardProps = {
   job: PublicJob;
 };
 
-/** Carte mission liste — montant / heure / commune ; lien détail public. */
+function Fact({ icon: IconCmp, children }: { icon: typeof IconClock; children: string }) {
+  return (
+    <Group gap={6} wrap="nowrap">
+      <IconCmp size={16} stroke={2} color={tokens.color.brand.inkMuted} aria-hidden />
+      <Text size="sm" fw={600}>
+        {children}
+      </Text>
+    </Group>
+  );
+}
+
+/** Carte mission liste : montant, heure et commune en texte ; un vrai lien vers le détail. */
 export function JobCard({ job }: JobCardProps) {
   const href = job.sharePath ?? `/missions/${job.id}`;
+  const places =
+    typeof job.placesRemaining === 'number'
+      ? `${job.placesRemaining} place${job.placesRemaining !== 1 ? 's' : ''} restante${job.placesRemaining !== 1 ? 's' : ''}`
+      : null;
 
   return (
     <Paper
@@ -22,6 +38,7 @@ export function JobCard({ job }: JobCardProps) {
       radius="lg"
       p="md"
       withBorder
+      className="bf-card-hover"
       style={{
         borderColor: tokens.color.border.subtle,
         background: tokens.color.surface.card,
@@ -30,68 +47,49 @@ export function JobCard({ job }: JobCardProps) {
       <Stack gap="sm">
         <JobPostHeader job={job} />
         <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
-          <Title order={3} fz={17} fw={700} style={{ lineHeight: 1.3 }}>
+          <Title order={3} fz={18} fw={700} style={{ lineHeight: 1.3 }}>
             {job.title}
           </Title>
-          <Group gap={6} wrap="nowrap">
-            {job.featured ? (
-              <StatusBadge tone="alerte">Sponsorisé</StatusBadge>
-            ) : null}
-            <StatusBadge tone={job.applicationsOpen ? 'succes' : 'attente'}>
-              {job.applicationsOpen ? 'Publiée' : 'Fermée'}
-            </StatusBadge>
-          </Group>
-        </Group>
-        <Group gap="md" wrap="wrap">
-          <Text size="sm">
-            <Text span fw={700}>
-              {formatMoney(job.amount, job.currency)}
-            </Text>{' '}
-            <Text span c="dimmed" size="sm">
-              {job.payUnit === 'HOUR'
-                ? 'de l’heure'
-                : job.payUnit === 'DAY'
-                  ? 'la journée'
-                  : 'la mission'}
-            </Text>
-          </Text>
-          <Text size="sm" fw={600}>
-            {formatStartAt(job.startAt)}
-          </Text>
-          <Text size="sm" fw={600}>
-            {job.commune}
-          </Text>
-          {typeof job.placesRemaining === 'number' ? (
-            <Text size="sm" c="dimmed">
-              {job.placesRemaining} place
-              {job.placesRemaining !== 1 ? 's' : ''} restante
-              {job.placesRemaining !== 1 ? 's' : ''}
-            </Text>
+          {/* La liste publique ne montre que des offres ouvertes : seul l’écart mérite un badge. */}
+          {job.featured || !job.applicationsOpen ? (
+            <Group gap={6} wrap="nowrap">
+              {job.featured ? <StatusBadge tone="alerte">Sponsorisé</StatusBadge> : null}
+              {!job.applicationsOpen ? <StatusBadge tone="attente">Fermée</StatusBadge> : null}
+            </Group>
           ) : null}
         </Group>
-        <Group gap={6} wrap="wrap">
+
+        <Text size="md">
+          <Text span fw={800} fz="lg">
+            {formatMoney(job.amount, job.currency)}
+          </Text>{' '}
+          <Text span c="dimmed" size="sm">
+            {payUnitLabel(job.payUnit)}
+          </Text>
+        </Text>
+
+        <Stack gap={6}>
+          <Fact icon={IconClock}>{formatStartAt(job.startAt)}</Fact>
+          <Fact icon={IconMapPin}>
+            {job.publicLandmark ? `${job.commune} · ${job.publicLandmark}` : job.commune}
+          </Fact>
+          {job.distanceLabel ? <Fact icon={IconRoute}>{job.distanceLabel}</Fact> : null}
+        </Stack>
+
+        <Group gap={6} wrap="wrap" justify="space-between">
           <AppChip checked readOnly variant="light" icon={null}>
             {job.category}
           </AppChip>
-          {job.publicLandmark ? (
-            <AppChip checked readOnly variant="light" icon={null}>
-              {job.publicLandmark}
-            </AppChip>
+          {places ? (
+            <Text size="sm" c="dimmed">
+              {places}
+            </Text>
           ) : null}
-          <AppChip checked readOnly variant="light" icon={null}>
-            {job.distanceLabel ?? 'position non partagée'}
-          </AppChip>
         </Group>
-        <AppButton
-          color="flash"
-          size="sm"
-          fullWidth
-          onClick={() => {
-            window.location.assign(href);
-          }}
-        >
-          Voir le détail
-        </AppButton>
+
+        <Button component={Link} href={href} variant="light" color="flash" fullWidth>
+          Voir la mission
+        </Button>
       </Stack>
     </Paper>
   );

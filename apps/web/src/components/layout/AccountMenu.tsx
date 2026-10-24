@@ -137,7 +137,7 @@ export function AccountMenu({
                 borderColor: tokens.color.brand.flash,
               },
               '&:focus-visible': {
-                outline: `2px solid ${tokens.color.brand.flash}`,
+                outline: `2px solid ${tokens.color.brand.flashText}`,
                 outlineOffset: 2,
               },
             },
@@ -200,7 +200,7 @@ export function AccountMenu({
                 minHeight: 44,
                 borderRadius: 8,
                 fontWeight: active ? 700 : 500,
-                color: active ? tokens.color.brand.flash : undefined,
+                color: active ? tokens.color.brand.flashText : undefined,
               }}
             >
               {entry.label}

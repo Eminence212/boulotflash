@@ -15,11 +15,11 @@ import {
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useDisclosure, useMediaQuery } from '@mantine/hooks';
-import { SlidersHorizontalIcon } from '@phosphor-icons/react';
 import {
   IconCalendar,
   IconSearch,
   IconX,
+  IconAdjustmentsHorizontal,
 } from '@tabler/icons-react';
 import { AppChip } from '@/components/boulotflash/AppChip';
 import { AppButton } from '@/components/feedback';
@@ -179,10 +179,7 @@ export function JobSearchFilters({
             aria-label="Ouvrir les filtres"
             onClick={open}
           >
-            <SlidersHorizontalIcon
-              style={{ width: '70%', height: '70%' }}
-              aria-hidden
-            />
+            <IconAdjustmentsHorizontal size={20} stroke={2} aria-hidden />
           </ActionIcon>
         </Indicator>
       </Group>
@@ -227,7 +224,7 @@ export function JobSearchFilters({
         title={
           <Text
             fw={700}
-            style={{ fontFamily: tokens.typography.fontFamily.display }}
+            style={{ fontFamily: 'var(--font-display)' }}
           >
             Filtres
           </Text>

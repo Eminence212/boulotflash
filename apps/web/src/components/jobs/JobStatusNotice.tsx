@@ -1,7 +1,11 @@
 'use client';
 
 import { Group, Stack, Text } from '@mantine/core';
-import { CheckCircle, Circle, HourglassMedium } from '@phosphor-icons/react';
+import {
+  IconCircle,
+  IconCircleCheckFilled,
+  IconClock,
+} from '@tabler/icons-react';
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
 import { jobStatusLabel, jobStatusTone } from '@/lib/job-status';
 import { tokens } from '@/theme/tokens';
@@ -27,10 +31,15 @@ function Step({ state, label }: { state: 'done' | 'current' | 'next'; label: str
       : state === 'current'
         ? tokens.color.status.attente.fg
         : tokens.color.border.strong;
-  const Icon = state === 'done' ? CheckCircle : state === 'current' ? HourglassMedium : Circle;
+  const Icon =
+    state === 'done'
+      ? IconCircleCheckFilled
+      : state === 'current'
+        ? IconClock
+        : IconCircle;
   return (
     <Group gap={8} wrap="nowrap">
-      <Icon size={20} weight={state === 'next' ? 'regular' : 'fill'} color={color} aria-hidden />
+      <Icon size={20} stroke={2} color={color} aria-hidden />
       <Text
         size="sm"
         fw={state === 'current' ? 700 : 500}

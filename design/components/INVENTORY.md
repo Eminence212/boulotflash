@@ -23,6 +23,8 @@ Chemin cible (étape 04+) : `apps/web/src/components/ui/` et `apps/web/src/compo
 | `SectionHeading` | `Title` + `Text` | `text-center max-w-xl mx-auto` | |
 | `CategoryCard` | `UnstyledButton` / `Card` + icône Tabler | `rounded-2xl bg-flash-soft p-6` | voir `ICONS.md` |
 | `PartnerRow` | `Group` | `grayscale opacity-60` | trust bar |
+| `PageHeader` | `Title` + `Text` + `BackLink` | `gap-1.5` | Titre h1 unique par page, description, action principale |
+| `FormSection` | `Stack` `component=section` | carte optionnelle | Groupe de champs titré (`framed` sur les pages profil) |
 | `PageContainer` | `Container` | `px-5 md:px-8 max-w-6xl` | `layout.containerMax` |
 
 ## Métier (`components/boulotflash`)

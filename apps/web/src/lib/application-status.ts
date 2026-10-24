@@ -14,13 +14,13 @@ const HINTS: Record<string, string> = {
     'Le recruteur examine les candidatures. Vous serez prévenu s’il vous retient.',
   SHORTLISTED:
     'Vous êtes présélectionné. Le recruteur peut vous proposer la mission.',
-  OFFERED: 'Le recruteur vous propose la mission.',
-  ACCEPTED: 'Mission confirmée.',
+  OFFERED: 'Le recruteur vous propose une place. Répondez avant l’échéance.',
+  ACCEPTED: 'Le recruteur est prévenu. Gardez la date et l’heure de la mission.',
   REJECTED: 'Le recruteur n’a pas retenu votre candidature.',
   DECLINED: 'Vous avez décliné la proposition.',
   WITHDRAWN:
     'Vous avez retiré votre candidature. Vous ne pouvez plus postuler à cette mission.',
-  EXPIRED: 'La proposition a expiré.',
+  EXPIRED: 'Cette proposition a expiré.',
 };
 
 export function applicationTone(status: string): Tone {

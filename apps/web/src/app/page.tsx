@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Stack, Text, Title, List, Anchor, Group } from '@mantine/core';
+import { Stack, Text, Title, Anchor, Group } from '@mantine/core';
+import { IconSearch } from '@tabler/icons-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
 import { JobCard } from '@/components/boulotflash/JobCard';
@@ -15,7 +17,6 @@ import { AppShellLayout } from '@/components/layout/AppShellLayout';
 import { useMe } from '@/hooks/useMe';
 import { apiFetch, readAccessToken } from '@/lib/api';
 import { isEmployerMode, type PublicJob } from '@/lib/me';
-import { tokens } from '@/theme/tokens';
 
 type JobsListResponse = {
   items?: PublicJob[];
@@ -45,7 +46,7 @@ function todayYmdKinshasa(): string {
 }
 
 export default function HomePage() {
-  const { me, loading, refresh } = useMe();
+  const { me, refresh } = useMe();
   const [jobs, setJobs] = useState<PublicJob[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -141,9 +142,6 @@ export default function HomePage() {
   return (
     <AppShellLayout
       me={me}
-      onModeChanged={() => {
-        void refresh();
-      }}
       onLocationChanged={() => {
         void refresh();
         void loadJobs(1, false, filters);
@@ -155,7 +153,7 @@ export default function HomePage() {
             order={1}
             fz={{ base: 26, sm: 30 }}
             fw={800}
-            style={{ fontFamily: tokens.typography.fontFamily.display }}
+            style={{ fontFamily: 'var(--font-display)' }}
           >
             Trouvez un{' '}
             <Text span c="flash" inherit>
@@ -163,9 +161,9 @@ export default function HomePage() {
             </Text>{' '}
             aujourd’hui.
           </Title>
-          <Text size="sm" c="dimmed">
-            Missions à Kinshasa. Consultez librement — candidature et publication
-            demandent un profil complet.
+          <Text size="sm" c="dimmed" style={{ lineHeight: 1.5 }}>
+            Des missions courtes près de chez vous. Consultez librement ; pour
+            postuler ou publier, il faut un profil complet.
           </Text>
           {me ? (
             <Group gap="xs">
@@ -191,23 +189,12 @@ export default function HomePage() {
           ) : null}
         </Stack>
 
-        {loading && me ? (
-          <Text size="sm" c="dimmed">
-            Chargement du profil…
-          </Text>
-        ) : null}
-
         {me && !employer && gaps.length > 0 ? (
-          <AppAlert tone="warning" title="Profil à compléter">
-            <Text size="sm" mb="xs">
-              Il manque : {gaps.join(', ')}. La liste des offres reste ouverte.
+          <AppAlert tone="warning" title="Complétez votre profil pour postuler">
+            <Text size="sm">
+              Il manque : {gaps.join(', ')}. Vous pouvez déjà parcourir les offres.
             </Text>
-            <List size="sm" spacing={4}>
-              {gaps.map((g) => (
-                <List.Item key={g}>{g}</List.Item>
-              ))}
-            </List>
-            <Group mt="sm" gap="sm">
+            <Group mt="sm" gap="md">
               {me.needsProfileCompletion ? (
                 <Anchor
                   component={Link}
@@ -261,9 +248,12 @@ export default function HomePage() {
             </AppAlert>
           ) : null}
           {jobs.length === 0 && !jobsError ? (
-            <AppAlert tone="info" title="Aucun résultat">
-              Essayez d’élargir la commune, la catégorie ou les mots-clés.
-            </AppAlert>
+            <EmptyState
+              icon={IconSearch}
+              title="Aucune mission ne correspond"
+              description="Élargissez la commune, la catégorie, la date ou les mots-clés."
+              action={{ label: 'Effacer les filtres', onClick: resetFilters }}
+            />
           ) : null}
           {jobs.map((job) => (
             <JobCard key={job.id} job={job} />

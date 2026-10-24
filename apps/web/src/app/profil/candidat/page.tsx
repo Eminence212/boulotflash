@@ -1,45 +1,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {
-  Checkbox,
-  Group,
-  MultiSelect,
-  Paper,
-  Select,
-  Stack,
-  Switch,
-  Text,
-  TextInput,
-  Title,
-} from '@mantine/core';
+import { MultiSelect, Select, Stack, Switch, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { AppAlert, AppButton, GlobalLoader } from '@/components/feedback';
 import {
   PhoneField,
   isValidPilotPhoneInput,
 } from '@/components/boulotflash/PhoneField';
+import { AvailabilityGrid } from '@/components/boulotflash/AvailabilityGrid';
+import { ModeSwitchCard } from '@/components/boulotflash/ModeSwitchCard';
 import { StatusBadge } from '@/components/boulotflash/StatusBadge';
+import { FormSection } from '@/components/ui/FormSection';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { AppShellLayout } from '@/components/layout/AppShellLayout';
 import { useMe } from '@/hooks/useMe';
 import { apiFetch, readAccessToken } from '@/lib/api';
-import { SLOT_LABELS, WEEKDAY_LABELS } from '@/lib/me';
-import { tokens } from '@/theme/tokens';
 
 type CatalogItem = { id: string; name: string };
 
 type SlotKey = `${number}:${string}`;
-
-const SLOT_OPTIONS: { weekday: number; slot: string; label: string }[] = [];
-for (let d = 1; d <= 7; d += 1) {
-  for (const slot of ['MORNING', 'AFTERNOON', 'EVENING'] as const) {
-    SLOT_OPTIONS.push({
-      weekday: d,
-      slot,
-      label: `${WEEKDAY_LABELS[d]} · ${SLOT_LABELS[slot]}`,
-    });
-  }
-}
 
 export default function ProfilCandidatPage() {
   const { me, loading, refresh } = useMe({ requireAuth: true });
@@ -47,6 +27,7 @@ export default function ProfilCandidatPage() {
   const [categories, setCategories] = useState<CatalogItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [selectedSlots, setSelectedSlots] = useState<Set<SlotKey>>(new Set());
 
   const form = useForm({
@@ -113,6 +94,7 @@ export default function ProfilCandidatPage() {
 
   async function onSave() {
     setError(null);
+    setSaved(false);
     const validation = form.validate();
     if (validation.hasErrors) return;
     setSaving(true);
@@ -155,6 +137,7 @@ export default function ProfilCandidatPage() {
       return;
     }
     await refresh();
+    setSaved(true);
   }
 
   async function onToggleAvailable(checked: boolean) {
@@ -176,121 +159,105 @@ export default function ProfilCandidatPage() {
   const complete = me.workerProfileComplete;
 
   return (
-    <AppShellLayout
-      me={me}
-      title="Profil candidat"
-      onModeChanged={() => void refresh()}
-    >
+    <AppShellLayout me={me}>
       <Stack gap="md">
-        <Paper
-          radius="lg"
-          p="md"
-          withBorder
-          style={{ borderColor: tokens.color.border.subtle }}
-        >
-          <Group justify="space-between" align="flex-start" mb="sm">
-            <Stack gap={4}>
-              <Title order={2} fz={20} fw={800}>
-                {form.values.displayName || 'Profil candidat'}
-              </Title>
-              <StatusBadge tone="soft">Candidat</StatusBadge>
-            </Stack>
+        <PageHeader
+          title="Profil candidat"
+          description="Ces informations permettent aux recruteurs de vous retenir. Votre téléphone n’est jamais affiché publiquement."
+          actions={
             <StatusBadge tone={complete ? 'succes' : 'attente'}>
               {complete ? 'Profil complet' : 'Incomplet'}
             </StatusBadge>
-          </Group>
-          {!complete && me.gaps.length > 0 ? (
-            <Text size="sm" c="dimmed" mt="sm">
-              Manques : {me.gaps.join(', ')}
-            </Text>
-          ) : null}
-        </Paper>
-
-        <TextInput
-          label="Nom affiché"
-          required
-          {...form.getInputProps('displayName')}
-        />
-        <PhoneField
-          value={form.values.phone}
-          onChange={(v) => {
-            form.setFieldValue('phone', v);
-            form.clearFieldError('phone');
-          }}
-          error={form.errors.phone}
-        />
-        <Select
-          label="Commune"
-          placeholder="Choisir"
-          searchable
-          data={communes.map((c) => ({ value: c.id, label: c.name }))}
-          value={form.values.communeId}
-          onChange={(v) => form.setFieldValue('communeId', v)}
-        />
-        <Select
-          label="Compétence principale"
-          placeholder="Ex. Vente"
-          searchable
-          data={categories.map((c) => ({ value: c.id, label: c.name }))}
-          value={form.values.mainCategoryId}
-          onChange={(v) => {
-            form.setFieldValue('mainCategoryId', v);
-            if (v && !form.values.skillCategoryIds.includes(v)) {
-              form.setFieldValue('skillCategoryIds', [
-                ...form.values.skillCategoryIds,
-                v,
-              ]);
-            }
-          }}
-        />
-        <MultiSelect
-          label="Autres compétences"
-          searchable
-          data={categories.map((c) => ({ value: c.id, label: c.name }))}
-          value={form.values.skillCategoryIds}
-          onChange={(v) => form.setFieldValue('skillCategoryIds', v)}
+          }
         />
 
-        <Switch
-          label="Je suis disponible"
-          description="Désactiver ne ferme pas le compte — la consultation reste possible."
-          checked={form.values.isAvailable}
-          onChange={(e) => void onToggleAvailable(e.currentTarget.checked)}
-        />
+        <ModeSwitchCard me={me} onChanged={() => void refresh()} />
 
-        <Stack gap="xs">
-          <Text size="sm" fw={600}>
-            Disponibilités
-          </Text>
-          <Paper
-            radius="md"
-            p="sm"
-            withBorder
-            style={{ borderColor: tokens.color.border.subtle }}
-          >
-            <Stack gap={6}>
-              {SLOT_OPTIONS.filter((o) => o.weekday <= 6).map((opt) => {
-                const key = `${opt.weekday}:${opt.slot}` as SlotKey;
-                return (
-                  <Checkbox
-                    key={key}
-                    label={opt.label}
-                    checked={selectedSlots.has(key)}
-                    onChange={() => toggleSlot(opt.weekday, opt.slot)}
-                  />
-                );
-              })}
-            </Stack>
-          </Paper>
-        </Stack>
+        {!complete && me.gaps.length > 0 ? (
+          <AppAlert tone="warning" title="Pour pouvoir postuler">
+            Il manque : {me.gaps.join(', ')}.
+          </AppAlert>
+        ) : null}
+
+        <FormSection title="Identité" framed>
+          <TextInput
+            label="Nom affiché"
+            description="Le nom que voient les recruteurs."
+            required
+            {...form.getInputProps('displayName')}
+          />
+          <PhoneField
+            value={form.values.phone}
+            onChange={(v) => {
+              form.setFieldValue('phone', v);
+              form.clearFieldError('phone');
+            }}
+            error={form.errors.phone}
+          />
+          <Select
+            label="Commune"
+            description="Là où vous habitez ou travaillez le plus souvent."
+            placeholder="Choisir une commune"
+            searchable
+            nothingFoundMessage="Aucune commune"
+            data={communes.map((c) => ({ value: c.id, label: c.name }))}
+            value={form.values.communeId}
+            onChange={(v) => form.setFieldValue('communeId', v)}
+          />
+        </FormSection>
+
+        <FormSection title="Compétences" hint="Les missions de ces catégories vous correspondent." framed>
+          <Select
+            label="Compétence principale"
+            placeholder="Ex. Vente"
+            searchable
+            nothingFoundMessage="Aucune catégorie"
+            data={categories.map((c) => ({ value: c.id, label: c.name }))}
+            value={form.values.mainCategoryId}
+            onChange={(v) => {
+              form.setFieldValue('mainCategoryId', v);
+              if (v && !form.values.skillCategoryIds.includes(v)) {
+                form.setFieldValue('skillCategoryIds', [
+                  ...form.values.skillCategoryIds,
+                  v,
+                ]);
+              }
+            }}
+          />
+          <MultiSelect
+            label="Autres compétences"
+            placeholder="Ajouter"
+            searchable
+            nothingFoundMessage="Aucune catégorie"
+            data={categories.map((c) => ({ value: c.id, label: c.name }))}
+            value={form.values.skillCategoryIds}
+            onChange={(v) => form.setFieldValue('skillCategoryIds', v)}
+          />
+        </FormSection>
+
+        <FormSection title="Disponibilité" framed>
+          <Switch
+            size="md"
+            label="Je suis disponible"
+            description="Enregistré tout de suite. Désactivé, vous ne pouvez pas postuler mais vous consultez toujours les offres."
+            checked={form.values.isAvailable}
+            onChange={(e) => void onToggleAvailable(e.currentTarget.checked)}
+          />
+          <AvailabilityGrid selected={selectedSlots} onToggle={toggleSlot} />
+        </FormSection>
 
         {error ? (
           <AppAlert tone="error" title="Profil">
             {error}
           </AppAlert>
         ) : null}
+        {saved && !error ? (
+          <AppAlert tone="success" title="Profil enregistré">
+            Vos modifications sont prises en compte.
+          </AppAlert>
+        ) : null}
 
-        <AppButton color="flash" loading={saving} onClick={() => void onSave()} fullWidth>
+        <AppButton color="flash" size="md" loading={saving} onClick={() => void onSave()} fullWidth>
           Enregistrer
         </AppButton>
       </Stack>

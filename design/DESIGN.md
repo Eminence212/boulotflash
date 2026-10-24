@@ -73,6 +73,7 @@ Principe : chaque composant = wrapper Mantine + icône Tabler + classes Tailwind
 ## Accessibilité
 
 - Contraste texte ≥ 4.5:1 en plein soleil.
+- Couleur principale = bleu du logo `#3EA4FF` (mot « Flash », éclair) : fonds des boutons pleins, bordures, indicateurs, icône de navigation active. Libellé sur fond plein : blanc (choix de marque ; contraste 2,6:1 au repos, 3,4:1 au survol `#2B8FE6`, sous le seuil de 4,5:1 — écart assumé). Textes bleus (liens, boutons à contour, légers ou textuels, libellé de navigation actif, contour de focus) : `brand.flashText` `#006ED1`, même teinte (208°, saturation 100 %), assombrie juste assez pour 4,5:1 sur blanc, sur `flashSoft` et sur le canevas. Source : `tokens.json` → thème Mantine (`variantColorResolver`, `cssVariablesResolver`).
 - Cibles tactiles ≥ 44 px.
 - Montant, heure, commune toujours en texte (pas seulement une couleur).
 - `prefers-reduced-motion` respecté.

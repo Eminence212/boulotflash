@@ -3,6 +3,7 @@ import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import './globals.css';
 import { ColorSchemeScript } from '@mantine/core';
+import { Outfit } from 'next/font/google';
 import { Providers } from './providers';
 import { tokens } from '@/theme/tokens';
 
@@ -11,17 +12,18 @@ export const metadata: Metadata = {
   description: tokens.copy.tagline,
 };
 
+// Police servie par l’app : pas de feuille Google bloquante avant le premier affichage.
+const outfit = Outfit({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-outfit',
+});
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="fr" className={outfit.variable}>
       <head>
         <ColorSchemeScript defaultColorScheme="light" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap"
-          rel="stylesheet"
-        />
         <link rel="icon" href="/logo/favicon.svg" type="image/svg+xml" />
       </head>
       <body>

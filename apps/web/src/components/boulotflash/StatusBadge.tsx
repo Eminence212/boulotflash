@@ -1,11 +1,11 @@
 'use client';
 
 import { Badge } from '@mantine/core';
-import { mantineStatusColors } from '@/theme/tokens';
+import { mantineStatusColors, tokens } from '@/theme/tokens';
 
 type Tone = keyof typeof mantineStatusColors | 'soft';
 
-const SOFT = { fg: '#1A3358', bg: '#E8F4FF' };
+const SOFT = { fg: tokens.color.brand.navySoft, bg: tokens.color.brand.flashSoft };
 
 type StatusBadgeProps = {
   tone?: Tone;
@@ -24,6 +24,9 @@ export function StatusBadge({ tone = 'soft', children }: StatusBadgeProps) {
         color: colors.fg,
         textTransform: 'none',
         fontWeight: 600,
+        // Un statut se lit en entier : le badge ne rétrécit jamais à côté d’un titre long.
+        flexShrink: 0,
+        overflow: 'visible',
       }}
     >
       {children}

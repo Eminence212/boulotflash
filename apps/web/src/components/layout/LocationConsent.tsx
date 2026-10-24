@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Group, Paper, Stack, Text } from '@mantine/core';
+import { Anchor, Collapse, Group, Paper, Stack, Text } from '@mantine/core';
 import { IconMapPin } from '@tabler/icons-react';
 import { AppButton } from '@/components/feedback';
 import { apiFetch, readAccessToken } from '@/lib/api';
@@ -12,6 +12,8 @@ type LocationConsentProps = {
   me: MeResponse;
   /** Après enregistrement ou retrait, pour recharger le profil et la liste. */
   onChanged?: () => void;
+  /** Proposer l’accord sur cette page (l’accueil, où la position classe les missions). */
+  prompt?: boolean;
 };
 
 function storageKey(token: string): string {
@@ -62,8 +64,9 @@ export async function disableCurrentLocation(): Promise<boolean> {
  * Accord volontaire. Si l’utilisateur a déjà accepté, la position
  * est actualisée une fois par connexion, sans nouveau dialogue.
  */
-export function LocationConsent({ me, onChanged }: LocationConsentProps) {
+export function LocationConsent({ me, onChanged, prompt = true }: LocationConsentProps) {
   const [open, setOpen] = useState(false);
+  const [details, setDetails] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,14 +76,14 @@ export function LocationConsent({ me, onChanged }: LocationConsentProps) {
     const key = storageKey(token);
     const mark = sessionStorage.getItem(key);
     if (!me.locationShared) {
-      if (mark === 'later' || mark === 'synced') return;
+      if (mark === 'later' || mark === 'synced' || !prompt) return;
       setOpen(true);
       return;
     }
     if (mark === 'synced' || mark === 'pending') return;
     sessionStorage.setItem(key, 'pending');
     void refreshSavedPosition(key);
-  }, [me.id, me.locationShared]);
+  }, [me.id, me.locationShared, prompt]);
 
   async function refreshSavedPosition(key: string) {
     try {
@@ -154,12 +157,27 @@ export function LocationConsent({ me, onChanged }: LocationConsentProps) {
               Missions les plus proches
             </Text>
             <Text size="sm" c="dimmed" style={{ lineHeight: 1.45 }}>
-              Si vous êtes d’accord, BoulotFlash enregistre votre position
-              actuelle — à Kinshasa ou dans une autre ville de la RDC — et la
-              remplace à chaque connexion. Une seule position, sans historique
-              et sans suivi continu. Elle sert à afficher d’abord les missions
-              les plus proches. Les autres utilisateurs ne la voient pas.
+              Voir d’abord les missions près de vous. Les autres utilisateurs
+              ne voient jamais votre position.{' '}
+              <Anchor
+                component="button"
+                type="button"
+                size="sm"
+                fw={600}
+                aria-expanded={details}
+                onClick={() => setDetails((value) => !value)}
+              >
+                {details ? 'Moins de détails' : 'En savoir plus'}
+              </Anchor>
             </Text>
+            <Collapse expanded={details}>
+              <Text size="sm" c="dimmed" style={{ lineHeight: 1.45 }}>
+                BoulotFlash enregistre votre position actuelle — à Kinshasa ou
+                dans une autre ville de la RDC — et la remplace à chaque
+                connexion. Une seule position, sans historique et sans suivi
+                continu. Vous pouvez la retirer depuis le menu du compte.
+              </Text>
+            </Collapse>
           </Stack>
         </Group>
         {error ? (
@@ -167,17 +185,19 @@ export function LocationConsent({ me, onChanged }: LocationConsentProps) {
             {error}
           </Text>
         ) : null}
-        <Group gap="sm" grow>
+        <Group gap="xs" wrap="wrap">
           <AppButton
             color="flash"
             loading={busy}
             onClick={() => void accept()}
+            leftSection={<IconMapPin size={18} stroke={2} aria-hidden />}
             style={{ minHeight: 44 }}
           >
             Utiliser ma position
           </AppButton>
           <AppButton
-            variant="default"
+            variant="subtle"
+            color="gray"
             disabled={busy}
             onClick={later}
             style={{ minHeight: 44 }}

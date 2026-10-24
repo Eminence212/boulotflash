@@ -38,7 +38,7 @@ export function PublicMissionMap({
           width: 16px;
           height: 16px;
           border-radius: 999px;
-          background: #3EA4FF;
+          background: var(--color-brand-flash);
           border: 2px solid #fff;
           box-shadow: 0 1px 4px rgba(25, 74, 121, 0.35);
         }

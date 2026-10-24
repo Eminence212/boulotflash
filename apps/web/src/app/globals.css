@@ -3,6 +3,7 @@
 @theme {
   --color-flash: #3ea4ff;
   --color-flash-soft: #e8f4ff;
+  --color-flash-text: #006ed1;
   --color-ink: #0b1220;
   --color-ink-muted: #475569;
   --color-canvas: #f0f5fa;
@@ -16,13 +17,17 @@
   --color-status-alerte-fg: #b54708;
   --color-status-alerte-bg: #fef0c7;
   /* Typo ui.mantine.dev : Outfit (titres) + pile système Mantine (corps) */
-  --font-display: Outfit, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font-display: var(--font-outfit), Outfit, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   --font-body: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;
   --radius-card: 1.5rem;
 }
 
 :root {
+  /* Toujours émis, même si Tailwind n’en voit pas l’usage (styles inline, thème Mantine). */
+  --font-display: var(--font-outfit), Outfit, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   --color-brand-flash: #3ea4ff;
+  /* Variante lisible du bleu du logo (même teinte) : textes, liens, contour de focus. */
+  --color-brand-flash-text: #006ed1;
   --color-surface-canvas: #f0f5fa;
   --color-status-attente-fg: #9a6700;
   --color-status-attente-bg: #fff3cd;
@@ -221,4 +226,38 @@ body {
 .bf-form-locked .mantine-Switch-root[data-disabled],
 .bf-form-locked .mantine-SegmentedControl-root[data-disabled] {
   opacity: 0.85;
+}
+
+/* Focus clavier visible partout, couleur de marque (DESIGN.md · Accessibilité). */
+a:focus-visible,
+button:focus-visible,
+[role='button']:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-brand-flash-text);
+  outline-offset: 2px;
+}
+
+/* Carte cliquable : léger relief au survol, sans mouvement. */
+.bf-card-hover {
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.bf-card-hover:hover,
+.bf-card-hover:focus-within {
+  border-color: #a8c0d9 !important;
+  box-shadow: 0 6px 18px rgba(11, 18, 32, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bf-card-hover {
+    transition: none;
+  }
+}
+
+/* Contour de focus des composants Mantine : même variante lisible que le reste (≥ 3:1 sur blanc). */
+.mantine-focus-auto:focus-visible,
+.mantine-focus-always:focus {
+  outline-color: var(--color-brand-flash-text);
 }

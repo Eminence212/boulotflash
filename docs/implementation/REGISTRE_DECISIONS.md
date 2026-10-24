@@ -98,6 +98,14 @@ Ces points ne sont pas des hypothèses à cocher. Ils restent la référence tan
 | Latence | |
 | Tranché le | |
 
+## Suivi d’implémentation des notifications (étape 19)
+
+Constat technique, pas une validation : la colonne « Tranché le » de D16 et D36 reste vide.
+
+- D36 n’est **pas validé terrain**. Le pilote tourne sans push : centre in-app seul, aucune dépendance Firebase ni Web Push, pas de table `device_tokens`, enum `NotificationChannel` limité à `IN_APP` et `EMAIL`. La garde de démarrage refuse toute variable `FCM_*` ou Firebase Messaging. Réintroduire le push demande une décision produit, puis une table de jetons, un canal et un consentement explicite.
+- D16 est appliqué comme hypothèse : le rappel in-app part `reminder_hours_before` heures avant le début, 3 par défaut. Il est balayé chaque minute par le worker `mission-reminders`, sans heures calmes, une ligne par partie et par participation.
+- Source du délai, demandée par le porteur du projet le 24 octobre 2026 : `platform_settings`, réglable par un super-admin (`PATCH /admin/settings/reminder-hours`, de 1 à 24 h, journalisé), et non une variable d’environnement `REMINDER_HOURS_BEFORE`. La valeur de 3 h reste une hypothèse non validée.
+
 ## Avant le pilote public
 
 Ces lignes bloquent l’ouverture publique, pas l’étape 02.

@@ -29,6 +29,13 @@ export {
   type MatchJob,
   type MatchRunResult,
 } from './matching';
+export {
+  startsInLabel,
+  sweepMissionReminders,
+  REMINDER_QUEUE,
+  REMINDER_SWEEP,
+  REMINDER_SWEEP_EVERY_MS,
+} from './reminders';
 export { jobFacts, jobPlace, kinshasaWeekdaySlot, kinshasaWhen, payLabel, type JobFacts } from './notification-text';
 export {
   runSeed,

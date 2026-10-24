@@ -10,6 +10,7 @@ import { AdminJobsController } from './admin-auth/admin-jobs.controller';
 import { AdminJwtService } from './admin-auth/admin-jwt.service';
 import { AdminLockoutService } from './admin-auth/admin-lockout.service';
 import { AdminMeController } from './admin-auth/admin-me.controller';
+import { AdminSettingsController } from './admin-auth/admin-settings.controller';
 import { AdminScopeGuard } from './admin-auth/admin-scope.guard';
 import { AdminSessionService } from './admin-auth/admin-session.service';
 import { AdminUsersController } from './admin-auth/admin-users.controller';
@@ -35,6 +36,7 @@ import { TokenBlacklistService } from './token-blacklist.service';
     AdminJobsController,
     AdminFinanceController,
     AdminCommunesController,
+    AdminSettingsController,
   ],
   providers: [
     JwtService,

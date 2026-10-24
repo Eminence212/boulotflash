@@ -4,6 +4,7 @@
  */
 import { matchMismatch, profileMatchesJob, type MatchCandidate, type MatchJob } from '../matching';
 import { jobFacts, kinshasaWeekdaySlot, kinshasaWhen } from '../notification-text';
+import { startsInLabel } from '../reminders';
 
 const LEMBA = 'commune-lemba';
 const VENTE = 'cat-vente';
@@ -85,5 +86,15 @@ describe('texte', () => {
     expect(
       jobFacts({ title: 'Service soirée', startAt: SAT_19H, commune: 'Lemba', amount: 1500, currency: 'USD', payUnit: 'MISSION' }),
     ).toBe('« Service soirée », sam. 31 oct., 19 h, Lemba, 15 USD la mission');
+  });
+});
+
+describe('délai du rappel', () => {
+  it('heures, heures et minutes, minutes', () => {
+    expect(startsInLabel(3 * 3600_000)).toBe('3 h');
+    expect(startsInLabel(3 * 3600_000 - 60_000)).toBe('2 h 59');
+    expect(startsInLabel(2 * 3600_000 + 3 * 60_000)).toBe('2 h');
+    expect(startsInLabel(45 * 60_000)).toBe('45 min');
+    expect(startsInLabel(10_000)).toBe('1 min');
   });
 });

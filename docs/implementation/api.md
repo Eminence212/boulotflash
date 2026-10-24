@@ -184,6 +184,8 @@ Aucun endpoint pour déclencher l’alerte de correspondance. Elle naît dans le
 | `POST /billing/payments/{id}/evidence` | Recruteur | URL pré-signée. Ne confirme pas |
 | `POST /admin/payments/{id}/confirm` | Finance ou super | Corps `{ "reference", "amount", "received": true }`. `received: false` ou capture seule : rester en vérification |
 | `POST /admin/settings/services-payants` | Super | `{ "enabled": true }`, journal `SERVICES_PAYANTS_ON` |
+| `GET /admin/settings` | Super | Réglages modifiables : `reminderHoursBefore` et ses bornes |
+| `PATCH /admin/settings/reminder-hours` | Super | `{ "hours": 3 }`, entier de 1 à 24, écrit dans `platform_settings.reminder_hours_before`, journal `SETTINGS_REMINDER_HOURS` avec `{ previous, next }` |
 
 Seconde confirmation du même paiement :
 

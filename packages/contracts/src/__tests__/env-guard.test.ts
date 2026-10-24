@@ -51,6 +51,18 @@ describe('validateEnv', () => {
     }
   });
 
+  it.each(['FIREBASE_SERVER_KEY', 'FIREBASE_MESSAGING_SENDER_ID', 'FIREBASE_FCM_KEY', 'NEXT_PUBLIC_FIREBASE_MESSAGING_VAPID'])(
+    'refuse la clé de push %s (D36)',
+    (key) => {
+      const result = validateEnv(baseEnv({ [key]: 'x' }));
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.code).toBe('FCM_FORBIDDEN');
+        expect(result.message).not.toContain('=x');
+      }
+    },
+  );
+
   it('refuse SEED_DEMO en production', () => {
     const result = validateEnv(
       baseEnv({ APP_ENV: 'production', SEED_DEMO: 'true', ENABLE_TEST_HOOKS: 'false' }),

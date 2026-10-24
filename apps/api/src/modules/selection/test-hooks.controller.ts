@@ -1,4 +1,6 @@
 import { Body, Controller, HttpCode, HttpException, Post } from '@nestjs/common';
+import { sweepMissionReminders } from '@boulotflash/database';
+import { PrismaService } from '../prisma/prisma.service';
 import { ClockService } from './clock.service';
 import { SelectionService } from './selection.service';
 
@@ -8,6 +10,7 @@ export class TestHooksController {
   constructor(
     private readonly clock: ClockService,
     private readonly selection: SelectionService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /** `{ "at": "2026-11-01T20:30:00.000Z" }` pose l’heure applicative ; `{ "at": null }` revient à l’heure réelle. */
@@ -30,5 +33,13 @@ export class TestHooksController {
   @HttpCode(200)
   runExpirations() {
     return this.selection.runExpirations();
+  }
+
+  /** Balayage des rappels de mission (étape 19), à l’heure applicative ; le worker fait de même chaque minute. */
+  @Post('run-reminders')
+  @HttpCode(200)
+  async runReminders() {
+    const now = await this.clock.now();
+    return { ...(await sweepMissionReminders(this.prisma.client, now)), at: now.toISOString() };
   }
 }

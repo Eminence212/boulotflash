@@ -167,9 +167,9 @@ En-têtes de cette réponse : `Cache-Control: no-store`.
 
 ## Notifications
 
-`GET /notifications?unread=1` — lignes `IN_APP` du compte seulement.
+`GET /notifications?unread=1` — lignes `IN_APP` du compte seulement. Réponse : `{ "unreadCount": 2, "items": [{ "id", "type", "title", "message", "href", "read", "readAt", "createdAt" }] }`, 50 lignes au plus, les plus récentes d’abord. `href` est l’écran à ouvrir, calculé selon le rôle du destinataire. `Cache-Control: no-store`.
 
-`POST /notifications/{id}/read`
+`POST /notifications/{id}/read` — idempotent : la première date de lecture est conservée. Ligne d’un autre compte : 404.
 
 `POST /device-tokens` — **hors pilote** (D36). Pas d’enregistrement FCM tant que le push n’est pas réintroduit.
 

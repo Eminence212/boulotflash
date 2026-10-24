@@ -20,6 +20,17 @@ export {
   type InAppNotification,
 } from './selection';
 export {
+  matchMismatch,
+  profileMatchesJob,
+  runJobMatch,
+  MATCH_JOB,
+  MATCH_QUEUE,
+  type MatchCandidate,
+  type MatchJob,
+  type MatchRunResult,
+} from './matching';
+export { jobFacts, jobPlace, kinshasaWeekdaySlot, kinshasaWhen, payLabel, type JobFacts } from './notification-text';
+export {
   runSeed,
   seedReferentiel,
   seedDemoAccounts,

@@ -1,6 +1,6 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { insertInAppNotifications } from '@boulotflash/database';
+import { insertInAppNotifications, jobPlace } from '@boulotflash/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { PublicJobsCacheService } from '../redis-cache/public-jobs-cache.service';
 import { ClockService } from './clock.service';
@@ -146,7 +146,19 @@ export class ParticipationService {
         const now = await this.clock.now();
         const row = await tx.participation.findUniqueOrThrow({
           where: { id: participationId },
-          select: { status: true, job: { select: { id: true, title: true, status: true, applyDeadline: true } } },
+          select: {
+            status: true,
+            job: {
+              select: {
+                id: true,
+                title: true,
+                status: true,
+                applyDeadline: true,
+                startAt: true,
+                commune: { select: { name: true } },
+              },
+            },
+          },
         });
         if (row.status === 'CANCELLED') return this.cancelledBody(participationId);
         if (row.status !== 'CONFIRMED') {
@@ -173,6 +185,7 @@ export class ParticipationService {
           reopened = true;
         }
         const by = asEmployer ? 'Le recruteur' : 'Le candidat';
+        const place = jobPlace({ title: row.job.title, startAt: row.job.startAt, commune: row.job.commune.name });
         await insertInAppNotifications(
           tx,
           [head.workerId, head.employerId].map((recipient) => ({
@@ -181,8 +194,8 @@ export class ParticipationService {
             title: 'Mission annulée',
             message:
               recipient === userId
-                ? `Vous avez annulé votre participation à « ${row.job.title} ». Les coordonnées ne sont plus accessibles.`
-                : `${by} a annulé la participation à « ${row.job.title} ». Les coordonnées ne sont plus accessibles.`,
+                ? `Vous avez annulé votre participation à ${place}. Les coordonnées ne sont plus accessibles, ni pour vous ni pour l’autre partie.`
+                : `${by} a annulé la participation à ${place}. Les coordonnées ne sont plus accessibles ; ouvrez l’offre pour voir la suite.`,
             relatedType: 'participation',
             relatedId: participationId,
             dedupeKey: `participation_cancelled:${participationId}`,

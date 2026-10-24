@@ -5,6 +5,9 @@ import {
   countOccupied,
   expireOfferInTx,
   insertInAppNotifications,
+  jobFacts,
+  jobPlace,
+  kinshasaWhen,
   lockJobRow,
   sweepExpiredOffers,
 } from '@boulotflash/database';
@@ -154,7 +157,25 @@ export class SelectionService {
         where: { id: app.id, status: 'SUBMITTED' },
         data: { status: 'SHORTLISTED' },
       });
-      if (updated.count > 0) return;
+      if (updated.count > 0) {
+        const { place } = await this.jobNotice(tx, app.jobId);
+        await insertInAppNotifications(
+          tx,
+          [
+            {
+              userId: app.workerId,
+              templateKey: 'application_shortlisted',
+              title: 'Candidature présélectionnée',
+              message: `Votre candidature pour ${place}, est présélectionnée. Aucune place n’est encore réservée : une éventuelle proposition arrivera ici.`,
+              relatedType: 'application',
+              relatedId: app.id,
+              dedupeKey: `application_shortlisted:${app.id}`,
+            },
+          ],
+          await this.clock.now(),
+        );
+        return;
+      }
       const current = await tx.application.findUnique({
         where: { id: app.id },
         select: { status: true },
@@ -184,6 +205,7 @@ export class SelectionService {
         if (current?.status === 'REJECTED') return;
         fail(409, 'VALIDATION', 'Cette candidature ne peut plus être refusée.');
       }
+      const { place } = await this.jobNotice(tx, app.jobId);
       await insertInAppNotifications(
         tx,
         [
@@ -191,7 +213,7 @@ export class SelectionService {
             userId: app.workerId,
             templateKey: 'application_rejected',
             title: 'Candidature non retenue',
-            message: `Votre candidature pour « ${app.jobTitle} » n’a pas été retenue.`,
+            message: `Votre candidature pour ${place}, n’a pas été retenue. D’autres missions vous attendent dans la liste.`,
             relatedType: 'application',
             relatedId: app.id,
             dedupeKey: `application_rejected:${app.id}`,
@@ -269,7 +291,7 @@ export class SelectionService {
             userId: app.workerId,
             templateKey: 'selection_offer_created',
             title: 'Une place vous est proposée',
-            message: `Répondez avant l’échéance pour « ${job.title} ».`,
+            message: `Pour ${(await this.jobNotice(tx, job.id)).facts}. Acceptez ou déclinez avant ${kinshasaWhen(expiresAt)} ; l’adresse exacte s’affiche après acceptation.`,
             relatedType: 'selection_offer',
             relatedId: offer.id,
             dedupeKey: `selection_offer_created:${offer.id}`,
@@ -363,14 +385,25 @@ export class SelectionService {
         filled = true;
       }
 
+      const { place } = await this.jobNotice(tx, head.jobId);
+      const name = await this.workerName(tx, userId);
       await insertInAppNotifications(
         tx,
         [
           {
             userId: job.employerId,
             templateKey: 'selection_offer_accepted',
-            title: 'Proposition acceptée',
-            message: `Un candidat a accepté la place pour « ${job.title} ».`,
+            title: 'Place acceptée',
+            message: `${name} a accepté la place pour ${place}. Ouvrez les coordonnées pour vous organiser.`,
+            relatedType: 'participation',
+            relatedId: participation.id,
+            dedupeKey: `selection_offer_accepted:${offerId}`,
+          },
+          {
+            userId,
+            templateKey: 'selection_offer_accepted',
+            title: 'Place confirmée',
+            message: `Votre place pour ${place}, est confirmée. Ouvrez les coordonnées pour joindre le recruteur.`,
             relatedType: 'participation',
             relatedId: participation.id,
             dedupeKey: `selection_offer_accepted:${offerId}`,
@@ -408,6 +441,22 @@ export class SelectionService {
       }
       await tx.selectionOffer.update({ where: { id: offerId }, data: { status: 'DECLINED' } });
       await tx.application.update({ where: { id: head.applicationId }, data: { status: 'DECLINED' } });
+      const notice = await this.jobNotice(tx, head.jobId);
+      await insertInAppNotifications(
+        tx,
+        [
+          {
+            userId: notice.employerId,
+            templateKey: 'selection_offer_declined',
+            title: 'Proposition déclinée',
+            message: `${await this.workerName(tx, userId)} a décliné la place pour ${notice.place}. La place est de nouveau libre : proposez-la à un autre candidat.`,
+            relatedType: 'selection_offer',
+            relatedId: offerId,
+            dedupeKey: `selection_offer_declined:${offerId}`,
+          },
+        ],
+        now,
+      );
       return { httpStatus: 200, body: this.declinedBody(offerId) };
     });
   }
@@ -469,6 +518,37 @@ export class SelectionService {
       throw new HttpException(NOT_FOUND, 404);
     }
     return { id: app.id, jobId: app.jobId, workerId: app.workerId, jobTitle: app.job.title };
+  }
+
+  /** Repères publics de l’offre pour les textes in-app : jamais d’adresse ni de numéro. */
+  private async jobNotice(tx: Tx, jobId: string) {
+    const job = await tx.job.findUniqueOrThrow({
+      where: { id: jobId },
+      select: {
+        employerId: true,
+        title: true,
+        startAt: true,
+        amount: true,
+        currency: true,
+        payUnit: true,
+        commune: { select: { name: true } },
+      },
+    });
+    const base = { title: job.title, startAt: job.startAt, commune: job.commune.name };
+    return {
+      employerId: job.employerId,
+      place: jobPlace(base),
+      facts: jobFacts({ ...base, amount: job.amount, currency: job.currency, payUnit: job.payUnit }),
+    };
+  }
+
+  /** Nom d’usage du candidat, comme sur sa carte côté recruteur. */
+  private async workerName(tx: Tx, userId: string): Promise<string> {
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { displayName: true, workerProfile: { select: { displayName: true } } },
+    });
+    return user?.workerProfile?.displayName ?? user?.displayName ?? 'Un candidat';
   }
 
   /** Proposition adressée au candidat connecté ; sinon 404. */

@@ -1,10 +1,13 @@
 import { createHash } from 'node:crypto';
 import { HttpException, Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import {
   decryptTotpSecret,
   encodeTotpSecretForStorage,
   generateRecoveryCodes,
   generateTotpSecret,
+  insertInAppNotifications,
+  jobPlace,
   verifyTotpCode,
 } from '@boulotflash/database';
 import * as argon2 from 'argon2';
@@ -362,21 +365,75 @@ export class AdminAuthService {
         404,
       );
     }
-    await this.prisma.client.job.update({
-      where: { id: jobId },
-      data: { status: 'SUSPENDED' },
-    });
-    await this.prisma.client.auditLog.create({
-      data: {
-        actorId,
-        action: 'JOB_SUSPENDED',
-        entityType: 'job',
-        entityId: jobId,
-        metadata: { reason: motif, previousStatus: job.status },
-      },
+    await this.prisma.client.$transaction(async (tx) => {
+      await tx.job.update({
+        where: { id: jobId },
+        data: { status: 'SUSPENDED' },
+      });
+      const audit = await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'JOB_SUSPENDED',
+          entityType: 'job',
+          entityId: jobId,
+          metadata: { reason: motif, previousStatus: job.status },
+        },
+        select: { id: true },
+      });
+      await this.notifySuspension(tx, jobId, motif, audit.id);
     });
     await this.publicJobsCache.invalidate();
     return { id: jobId, status: 'SUSPENDED' };
+  }
+
+  /**
+   * Suspension (CDC §8.2) : in-app au recruteur, avec le motif, et aux candidats concernés, sans le motif.
+   */
+  private async notifySuspension(
+    tx: Prisma.TransactionClient,
+    jobId: string,
+    motif: string,
+    auditId: string,
+  ) {
+    const job = await tx.job.findUniqueOrThrow({
+      where: { id: jobId },
+      select: {
+        employerId: true,
+        title: true,
+        startAt: true,
+        commune: { select: { name: true } },
+        applications: {
+          where: { status: { in: ['SUBMITTED', 'SHORTLISTED', 'OFFERED', 'ACCEPTED'] } },
+          select: { workerId: true, participation: { select: { status: true } } },
+        },
+      },
+    });
+    const place = jobPlace({ title: job.title, startAt: job.startAt, commune: job.commune.name });
+    const base = {
+      templateKey: 'job_suspended',
+      title: 'Offre suspendue',
+      relatedType: 'job',
+      relatedId: jobId,
+      dedupeKey: `job_suspended:${auditId}`,
+    };
+    await insertInAppNotifications(
+      tx,
+      [
+        {
+          ...base,
+          userId: job.employerId,
+          message: `Votre offre ${place}, a été suspendue par la modération. Motif : ${motif}`,
+        },
+        ...job.applications
+          .filter((a) => a.participation?.status !== 'CANCELLED')
+          .map((a) => ({
+            ...base,
+            userId: a.workerId,
+            message: `L’offre ${place}, est suspendue par la modération. Elle n’accepte plus de candidature pour le moment.`,
+          })),
+      ],
+      new Date(),
+    );
   }
 
   async patchCommune(

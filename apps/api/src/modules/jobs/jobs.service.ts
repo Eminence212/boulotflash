@@ -20,6 +20,8 @@ import {
 } from './application-rules';
 import { NominatimGeocoder } from './nominatim-geocoder';
 import { ClockService } from '../selection/clock.service';
+import { MatchQueueService } from '../notifications/match-queue.service';
+import { insertInAppNotifications, jobFacts, jobPlace } from '@boulotflash/database';
 import {
   JobValidationError,
   SUBSTANTIAL_KEYS,
@@ -155,6 +157,7 @@ export class JobsService {
     private readonly publicJobsCache: PublicJobsCacheService,
     private readonly geocoder: NominatimGeocoder,
     private readonly clock: ClockService,
+    private readonly matchQueue: MatchQueueService,
   ) {}
 
   async listPublicJobs(
@@ -535,6 +538,8 @@ export class JobsService {
             } as Prisma.JobUncheckedUpdateInput,
           });
 
+          await this.notifyImportantChange(tx, jobId, version.id);
+
           return tx.job.findUnique({
             where: { id: jobId },
             select: JOB_DETAILS_SELECT,
@@ -734,6 +739,8 @@ export class JobsService {
 
     if (result.status === 'PUBLISHED') {
       await this.publicJobsCache.invalidate();
+      // Alerte de correspondance : premier passage en PUBLISHED seulement (CDC §8.3).
+      if (!job.publishedAt) await this.matchQueue.enqueueFirstPublication(result.id);
     }
 
     return {
@@ -741,6 +748,53 @@ export class JobsService {
       status: result.status,
       publishedAt: this.toIso(result.publishedAt),
     };
+  }
+
+  /**
+   * « Modification importante » (CDC §8.2) : in-app aux candidats concernés, dans la transaction de la
+   * nouvelle version. Jamais de seconde alerte « correspond au profil ».
+   */
+  private async notifyImportantChange(tx: Prisma.TransactionClient, jobId: string, versionId: string) {
+    const job = await tx.job.findUniqueOrThrow({
+      where: { id: jobId },
+      select: {
+        title: true,
+        startAt: true,
+        amount: true,
+        currency: true,
+        payUnit: true,
+        commune: { select: { name: true } },
+        applications: {
+          where: { status: { in: ['SUBMITTED', 'SHORTLISTED', 'OFFERED', 'ACCEPTED'] } },
+          select: { workerId: true, status: true, participation: { select: { status: true } } },
+        },
+      },
+    });
+    const facts = jobFacts({
+      title: job.title,
+      startAt: job.startAt,
+      commune: job.commune.name,
+      amount: job.amount,
+      currency: job.currency,
+      payUnit: job.payUnit,
+    });
+    const rows = job.applications
+      .filter((a) => a.participation?.status !== 'CANCELLED')
+      .map((a) => ({
+        userId: a.workerId,
+        templateKey: 'job_changed',
+        title: 'Offre modifiée',
+        message:
+          a.status === 'ACCEPTED'
+            ? `L’offre devient ${facts}, et repasse en validation. Vos conditions déjà acceptées restent valables ; ouvrez l’offre pour relire la nouvelle version.`
+            : a.status === 'OFFERED'
+              ? `L’offre devient ${facts}, et repasse en validation. La proposition en cours est annulée ; ouvrez l’offre pour relire la nouvelle version.`
+              : `L’offre devient ${facts}, et repasse en validation. Ouvrez-la pour relire la nouvelle version avant de continuer.`,
+        relatedType: 'job',
+        relatedId: jobId,
+        dedupeKey: `job_changed:${versionId}`,
+      }));
+    await insertInAppNotifications(tx, rows, new Date());
   }
 
   async republish(userId: string, jobId: string) {
@@ -1030,6 +1084,8 @@ export class JobsService {
         currency: true,
         payUnit: true,
         title: true,
+        startAt: true,
+        employerId: true,
         commune: { select: { name: true } },
       },
     });
@@ -1188,6 +1244,21 @@ export class JobsService {
           },
           select: { id: true, status: true },
         });
+        await insertInAppNotifications(
+          tx,
+          [
+            {
+              userId: job.employerId,
+              templateKey: 'application_submitted',
+              title: 'Nouvelle candidature',
+              message: `${worker.displayName} a postulé à ${jobPlace({ title: job.title, startAt: job.startAt, commune: job.commune.name })}. Ouvrez les candidatures pour présélectionner, proposer une place ou refuser.`,
+              relatedType: 'application',
+              relatedId: row.id,
+              dedupeKey: `application_submitted:${row.id}`,
+            },
+          ],
+          now,
+        );
         const responseBody = {
           id: row.id,
           status: row.status,
@@ -1451,6 +1522,8 @@ export class JobsService {
     });
 
     await this.publicJobsCache.invalidate();
+    // Une réapprobation après modification garde `publishedAt` : pas de seconde alerte.
+    if (!job.publishedAt) await this.matchQueue.enqueueFirstPublication(jobId);
 
     return {
       id: updated.id,

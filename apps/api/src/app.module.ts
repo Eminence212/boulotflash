@@ -4,6 +4,7 @@ import { FilesModule } from "./modules/files/files.module";
 import { HealthModule } from "./modules/health/health.module";
 import { IdentityModule } from "./modules/identity/identity.module";
 import { JobsModule } from "./modules/jobs/jobs.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { PrismaModule } from "./modules/prisma/prisma.module";
 import { ClockModule } from "./modules/selection/clock.module";
 import { SelectionModule } from "./modules/selection/selection.module";
@@ -17,6 +18,7 @@ import { SelectionModule } from "./modules/selection/selection.module";
     FilesModule.register(),
     IdentityModule,
     JobsModule,
+    NotificationsModule,
     SelectionModule.register(),
   ],
 })

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { RedisCacheModule } from '../redis-cache/redis-cache.module';
 import { AdminJobReviewController } from './admin-job-review.controller';
 import { ApplicationsController } from './applications.controller';
@@ -9,7 +10,7 @@ import { NominatimGeocoder } from './nominatim-geocoder';
 import { PublishersController } from './publishers.controller';
 
 @Module({
-  imports: [IdentityModule, RedisCacheModule],
+  imports: [IdentityModule, RedisCacheModule, NotificationsModule],
   controllers: [
     JobsController,
     ApplicationsController,

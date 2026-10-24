@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
+import { jobPlace } from './notification-text';
 
 /**
  * Sélection (étape 16) — règles partagées entre l’API et le worker.
@@ -41,14 +42,17 @@ export async function countOccupied(tx: Tx, jobId: string, now: Date): Promise<n
   return pending + participations;
 }
 
-/** Lignes in-app minimales (étape 18 généralisera). Doublons ignorés grâce à (user_id, dedupe_key). */
+/**
+ * Lignes du centre in-app (seul canal métier au pilote, CDC §8.1). Écrites dans la transaction de
+ * l’action métier ; doublons ignorés grâce à (user_id, dedupe_key). Retourne le nombre de lignes créées.
+ */
 export async function insertInAppNotifications(
   tx: Tx,
   rows: InAppNotification[],
   now: Date,
-): Promise<void> {
-  if (rows.length === 0) return;
-  await tx.notification.createMany({
+): Promise<number> {
+  if (rows.length === 0) return 0;
+  const created = await tx.notification.createMany({
     data: rows.map((row) => ({
       ...row,
       channel: 'IN_APP' as const,
@@ -57,6 +61,7 @@ export async function insertInAppNotifications(
     })),
     skipDuplicates: true,
   });
+  return created.count;
 }
 
 /**
@@ -96,7 +101,10 @@ export async function expireOfferInTx(
     select: {
       applicationId: true,
       application: {
-        select: { workerId: true, job: { select: { title: true, employerId: true } } },
+        select: {
+          workerId: true,
+          job: { select: { title: true, employerId: true, startAt: true, commune: { select: { name: true } } } },
+        },
       },
     },
   });
@@ -105,6 +113,7 @@ export async function expireOfferInTx(
     data: { status: 'EXPIRED' },
   });
   const { workerId, job } = offer.application;
+  const place = jobPlace({ title: job.title, startAt: job.startAt, commune: job.commune.name });
   await insertInAppNotifications(
     tx,
     [
@@ -112,7 +121,7 @@ export async function expireOfferInTx(
         userId: workerId,
         templateKey: 'selection_offer_expired',
         title: 'Proposition expirée',
-        message: `La proposition pour « ${job.title} » a expiré.`,
+        message: `La proposition pour ${place}, a expiré sans réponse. La place a été libérée pour un autre candidat.`,
         relatedType: 'selection_offer',
         relatedId: offerId,
         dedupeKey: `selection_offer_expired:${offerId}`,
@@ -121,7 +130,7 @@ export async function expireOfferInTx(
         userId: job.employerId,
         templateKey: 'selection_offer_expired',
         title: 'Proposition expirée',
-        message: `Votre proposition pour « ${job.title} » a expiré. La place est de nouveau libre.`,
+        message: `Votre proposition pour ${place}, a expiré sans réponse. La place est de nouveau libre : proposez-la à un autre candidat.`,
         relatedType: 'selection_offer',
         relatedId: offerId,
         dedupeKey: `selection_offer_expired:${offerId}`,

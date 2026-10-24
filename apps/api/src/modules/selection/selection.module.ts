@@ -5,6 +5,12 @@ import { testHooksEnabled } from './clock.service';
 import { SelectionQueueService } from './selection-queue.service';
 import { SelectionController } from './selection.controller';
 import { SelectionService } from './selection.service';
+import { IdempotencyService } from './idempotency.service';
+import {
+  AdminParticipationController,
+  ParticipationController,
+} from './participation.controller';
+import { ParticipationService } from './participation.service';
 import { TestHooksController } from './test-hooks.controller';
 
 @Module({})
@@ -14,10 +20,13 @@ export class SelectionModule {
     return {
       module: SelectionModule,
       imports: [IdentityModule, RedisCacheModule],
-      controllers: testHooksEnabled()
-        ? [SelectionController, TestHooksController]
-        : [SelectionController],
-      providers: [SelectionQueueService, SelectionService],
+      controllers: [
+        SelectionController,
+        ParticipationController,
+        AdminParticipationController,
+        ...(testHooksEnabled() ? [TestHooksController] : []),
+      ],
+      providers: [SelectionQueueService, SelectionService, IdempotencyService, ParticipationService],
     };
   }
 }

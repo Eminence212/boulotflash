@@ -1244,6 +1244,7 @@ export class JobsService {
           take: 1,
           select: { id: true, status: true, expiresAt: true },
         },
+        participation: { select: { id: true, status: true } },
       },
     });
     if (!row) return { application: null };
@@ -1255,6 +1256,9 @@ export class JobsService {
         statusLabel: labelFr(row.status),
         appliedAt: row.appliedAt.toISOString(),
         offer: this.offerView(row.selectionOffers[0], now),
+        participation: row.participation
+          ? { id: row.participation.id, status: row.participation.status }
+          : null,
       },
     };
   }
@@ -1276,6 +1280,7 @@ export class JobsService {
           take: 1,
           select: { id: true, status: true, expiresAt: true },
         },
+        participation: { select: { id: true, status: true } },
         job: {
           select: {
             id: true,
@@ -1306,6 +1311,9 @@ export class JobsService {
             ? row.selectionOffers[0].expiresAt.toISOString()
             : null,
         offer: this.offerView(row.selectionOffers[0], now),
+        participation: row.participation
+          ? { id: row.participation.id, status: row.participation.status }
+          : null,
       })),
     };
   }

@@ -204,7 +204,7 @@ describeSelection('étape 16 sélection', () => {
     expect((listing.json.job as { placesRemaining: number }).placesRemaining).toBe(1);
   });
 
-  it('16-D acceptation : participation confirmée, occupées stable, pas d’adresse ni de contact', async () => {
+  it('16-D acceptation : participation confirmée, occupées stable ; contact du candidat seulement (étape 17)', async () => {
     const r = await employer();
     const c = await worker();
     const jobId = await job(r.userId, { places: 2 });
@@ -217,8 +217,8 @@ describeSelection('étape 16 sélection', () => {
     expect(res.json.applicationStatus).toBe('ACCEPTED');
     expect(res.json.participationStatus).toBe('CONFIRMED');
     expect(typeof res.json.participationId).toBe('string');
-    expect(res.json).not.toHaveProperty('contact');
-    expect(res.raw).not.toMatch(/address|avenue secrète|\+243/i);
+    // Depuis l’étape 17 (api.md) : le candidat qui accepte reçoit le contact, jamais un tiers.
+    expect((res.json.contact as { addressPrivate: string }).addressPrivate).toBe('7 avenue secrète, Gombe');
 
     expect(await occupied(jobId, r.token)).toBe(before);
     expect(await db.participation.count({ where: { jobId } })).toBe(1);

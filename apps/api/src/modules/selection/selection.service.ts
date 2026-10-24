@@ -13,9 +13,10 @@ import { PublicJobsCacheService } from '../redis-cache/public-jobs-cache.service
 import { jobSnapshot } from '../jobs/job-fields';
 import { ClockService } from './clock.service';
 import { SelectionQueueService } from './selection-queue.service';
+import { IdempotencyService, type Outcome } from './idempotency.service';
+import { ParticipationService } from './participation.service';
 
 type Tx = Prisma.TransactionClient;
-type Outcome = { httpStatus: number; body: Record<string, unknown> };
 
 export const SLOT_FULL_MESSAGE = "Il n'y a plus de place à réserver.";
 export const PROPOSAL_EXPIRED_MESSAGE = 'Cette proposition a expiré.';
@@ -30,9 +31,6 @@ function fail(httpStatus: number, code: string, message: string): never {
   throw new HttpException({ code, message }, httpStatus);
 }
 
-function isUniqueViolation(err: unknown): err is Prisma.PrismaClientKnownRequestError {
-  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002';
-}
 
 @Injectable()
 export class SelectionService {
@@ -41,6 +39,8 @@ export class SelectionService {
     private readonly clock: ClockService,
     private readonly queue: SelectionQueueService,
     private readonly publicJobsCache: PublicJobsCacheService,
+    private readonly idempotency: IdempotencyService,
+    private readonly participations: ParticipationService,
   ) {}
 
   // ---------------------------------------------------------------- recruteur
@@ -91,6 +91,7 @@ export class SelectionService {
           take: 1,
           select: { id: true, status: true, expiresAt: true },
         },
+        participation: { select: { id: true, status: true } },
       },
     });
     return {
@@ -128,6 +129,9 @@ export class SelectionService {
             // Badge seulement : le numéro reste privé jusqu’à l’acceptation (BF-SEL-01, étape 17).
             phoneBadge: !!row.worker.phone,
           },
+          participation: row.participation
+            ? { id: row.participation.id, status: row.participation.status }
+            : null,
           offer: offer
             ? {
                 id: offer.id,
@@ -209,7 +213,7 @@ export class SelectionService {
     const minMs = (settings?.proposalMinHours ?? 2) * 60 * 60 * 1000;
 
     let created: { id: string; expiresAt: Date; now: Date } | null = null;
-    const outcome = await this.idempotent(userId, idempotencyKey, `offer:${applicationId}`, app.jobId, async (tx) => {
+    const outcome = await this.idempotency.run(userId, idempotencyKey, `offer:${applicationId}`, app.jobId, async (tx) => {
       const now = await this.clock.now();
       const job = await tx.job.findUniqueOrThrow({
         where: { id: app.jobId },
@@ -301,7 +305,7 @@ export class SelectionService {
   async accept(userId: string, offerId: string, idempotencyKey: string | undefined): Promise<Outcome> {
     const head = await this.ownedOffer(userId, offerId);
     let filled = false;
-    const outcome = await this.idempotent(userId, idempotencyKey, `accept:${offerId}`, head.jobId, async (tx) => {
+    const outcome = await this.idempotency.run(userId, idempotencyKey, `accept:${offerId}`, head.jobId, async (tx) => {
       const now = await this.clock.now();
       const offer = await tx.selectionOffer.findUniqueOrThrow({
         where: { id: offerId },
@@ -377,13 +381,13 @@ export class SelectionService {
       return this.acceptedBody(participation.id, participation.status);
     });
     if (filled) await this.publicJobsCache.invalidate();
-    return outcome;
+    return this.withContact(userId, outcome);
   }
 
   /** Déclin : la proposition se termine et la place redevient proposable. */
   async decline(userId: string, offerId: string, idempotencyKey: string | undefined): Promise<Outcome> {
     const head = await this.ownedOffer(userId, offerId);
-    return this.idempotent(userId, idempotencyKey, `decline:${offerId}`, head.jobId, async (tx) => {
+    return this.idempotency.run(userId, idempotencyKey, `decline:${offerId}`, head.jobId, async (tx) => {
       const now = await this.clock.now();
       const offer = await tx.selectionOffer.findUniqueOrThrow({
         where: { id: offerId },
@@ -416,6 +420,18 @@ export class SelectionService {
   }
 
   // ---------------------------------------------------------------- outils
+
+  /**
+   * Étape 17 : le candidat qui accepte reçoit le contact dans la réponse. Le bloc est calculé à chaque
+   * réponse, après contrôle, et n’est jamais enregistré avec la clé d’idempotence : un rejeu après
+   * annulation ne renvoie donc plus ni adresse ni numéro.
+   */
+  private async withContact(userId: string, outcome: Outcome): Promise<Outcome> {
+    const participationId = outcome.body.participationId;
+    if (outcome.httpStatus !== 200 || typeof participationId !== 'string') return outcome;
+    const contact = await this.participations.contactForParty(userId, participationId);
+    return contact ? { ...outcome, body: { ...outcome.body, contact } } : outcome;
+  }
 
   private acceptedBody(participationId: string, participationStatus: string): Outcome {
     return {
@@ -486,74 +502,5 @@ export class SelectionService {
     });
     await tx.job.update({ where: { id: jobId }, data: { currentVersionId: version.id } });
     return version.id;
-  }
-
-  /**
-   * Idempotence (api.md) : même clé + même requête → réponse enregistrée ; même clé + autre requête → 409.
-   * La clé est écrite dans la même transaction que l’effet : un rejeu ne voit jamais un effet sans réponse.
-   * Le verrou de l’offre est pris avant de relire la clé : deux requêtes parallèles avec la même clé
-   * se sérialisent, et la seconde relit la réponse validée par la première au lieu de rejouer l’effet.
-   */
-  private async idempotent(
-    userId: string,
-    rawKey: string | undefined,
-    requestHash: string,
-    jobId: string,
-    run: (tx: Tx) => Promise<Outcome>,
-  ): Promise<Outcome> {
-    const key = rawKey?.trim() ?? '';
-    if (!key || key.length > 200) {
-      fail(400, 'VALIDATION', 'Indiquez une clé d’idempotence.');
-    }
-    const replay = await this.storedOutcome(userId, key, requestHash);
-    if (replay) return replay;
-    try {
-      return await this.prisma.client.$transaction(
-        async (tx) => {
-          await lockJobRow(tx, jobId);
-          const already = await this.storedOutcome(userId, key, requestHash, tx);
-          if (already) return already;
-          const result = await run(tx);
-          await tx.idempotencyKey.create({
-            data: {
-              userId,
-              key,
-              requestHash,
-              responseCode: result.httpStatus,
-              responseBody: result.body as Prisma.InputJsonValue,
-            },
-          });
-          return result;
-        },
-        { timeout: 15_000, maxWait: 15_000 },
-      );
-    } catch (err) {
-      if (isUniqueViolation(err)) {
-        const again = await this.storedOutcome(userId, key, requestHash);
-        if (again) return again;
-        // Collision sur un index métier (une seule proposition PENDING par candidature).
-        fail(409, 'VALIDATION', 'Une proposition est déjà en cours pour cette candidature.');
-      }
-      throw err;
-    }
-  }
-
-  private async storedOutcome(
-    userId: string,
-    key: string,
-    requestHash: string,
-    db: Tx = this.prisma.client,
-  ): Promise<Outcome | null> {
-    const stored = await db.idempotencyKey.findUnique({
-      where: { userId_key: { userId, key } },
-    });
-    if (!stored) return null;
-    if (stored.requestHash !== requestHash) {
-      fail(409, 'VALIDATION', 'Cette clé d’idempotence a déjà servi pour une autre demande.');
-    }
-    return {
-      httpStatus: stored.responseCode,
-      body: (stored.responseBody ?? {}) as Record<string, unknown>,
-    };
   }
 }
